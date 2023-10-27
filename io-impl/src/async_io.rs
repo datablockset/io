@@ -49,19 +49,19 @@ impl AsyncIo for AIo {
 mod test {
     use std::{ffi::CString, thread::yield_now};
 
-    use super::{File, Overlapped};
-    use io_trait::{AsyncOperation, OperationResult};
+    use super::{File, Overlapped, AIo};
+    use io_trait::{AsyncOperation, OperationResult, AsyncIo, AsyncFile};
 
     #[test]
     fn test() {
+        let aio = AIo();
         //
         for _ in 0..1000 {
             let x: CString = CString::new("_test.txt").unwrap();
             let origin = b"Hello World!";
             {
-                let mut handle = File::create(&x).unwrap();
-                let mut overlapped = Overlapped::default();
-                let mut operation = handle.write(&mut overlapped, origin).unwrap();
+                let mut handle = aio.create(&x).unwrap();
+                let mut operation = handle.write(origin).unwrap();
                 loop {
                     match operation.get_result() {
                         OperationResult::Ok(bytes_written) => {
@@ -82,11 +82,10 @@ mod test {
                 // assert_eq!(result, 12);
             }
             {
-                let mut handle = File::open(&x).unwrap();
-                let mut overlapped = Overlapped::default();
+                let mut handle = aio.open(&x).unwrap();
                 let mut buffer = [0u8; 1024];
                 {
-                    let mut operation = handle.read(&mut overlapped, &mut buffer).unwrap();
+                    let mut operation = handle.read(&mut buffer).unwrap();
                     loop {
                         match operation.get_result() {
                             OperationResult::Ok(bytes_written) => {
@@ -113,13 +112,13 @@ mod test {
 
     #[test]
     fn test2() {
+        let aio = AIo();
         let x: CString = CString::new("_test2.txt").unwrap();
         let origin = "Hello, world!";
         for _ in 0..1000 {
             {
-                let mut file = File::create(&x).unwrap();
-                let mut overlapped: Overlapped = Overlapped::default();
-                let mut operation = file.write(&mut overlapped, origin.as_bytes()).unwrap();
+                let mut file = aio.create(&x).unwrap();
+                let mut operation = file.write(origin.as_bytes()).unwrap();
                 loop {
                     match operation.get_result() {
                         OperationResult::Ok(bytes_written) => {
@@ -140,12 +139,11 @@ mod test {
         }
         for _ in 0..1000 {
             {
-                let mut file = File::open(&x).unwrap();
-                let mut overlapped: Overlapped = Overlapped::default();
+                let mut file = aio.open(&x).unwrap();
                 let mut buffer = [0u8; 1024];
                 let mut len = 0;
                 {
-                    let mut operation = file.read(&mut overlapped, &mut buffer).unwrap();
+                    let mut operation = file.read(&mut buffer).unwrap();
                     loop {
                         match operation.get_result() {
                             OperationResult::Ok(bytes_read) => {
