@@ -20,10 +20,21 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - run: cargo install cargo-tarpaulin
     - run: cargo fmt --check
     - run: cargo clippy -- -D warnings
     - run: cargo t
+
+  cov:
+    strategy:
+      matrix:
+        # https://docs.github.com/en/actions/using-jobs/choosing-the-runner-for-a-job#choosing-github-hosted-runners
+        os: [windows-latest, macos-13]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v3
+    - run: cargo install cargo-tarpaulin
     - run: cargo c
     - uses: actions/upload-artifact@v3
       with:
