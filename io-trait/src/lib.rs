@@ -1,19 +1,13 @@
+mod dir_entry;
+mod metadata;
+
+pub use dir_entry::DirEntry;
+pub use metadata::Metadata;
+
 use std::{
     fmt, fs,
     io::{self, Read, Write},
 };
-
-#[allow(clippy::len_without_is_empty)]
-pub trait Metadata {
-    fn len(&self) -> u64;
-    fn is_dir(&self) -> bool;
-}
-
-pub trait DirEntry {
-    type Metadata: Metadata;
-    fn path(&self) -> String;
-    fn metadata(&self) -> io::Result<Self::Metadata>;
-}
 
 pub trait Io {
     type Args: Iterator<Item = String>;
@@ -75,15 +69,6 @@ pub trait Io {
             }
         }
         Ok(result)
-    }
-}
-
-impl Metadata for fs::Metadata {
-    fn len(&self) -> u64 {
-        self.len()
-    }
-    fn is_dir(&self) -> bool {
-        self.is_dir()
     }
 }
 
