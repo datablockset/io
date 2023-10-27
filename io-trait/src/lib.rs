@@ -1,6 +1,6 @@
 use std::{
     fmt,
-    io::{self, Read, Write},
+    io::{self, Read, Write}, fs,
 };
 
 #[allow(clippy::len_without_is_empty)]
@@ -75,5 +75,24 @@ pub trait Io {
             }
         }
         Ok(result)
+    }
+}
+
+impl Metadata for fs::Metadata {
+    fn len(&self) -> u64 {
+        self.len()
+    }
+    fn is_dir(&self) -> bool {
+        self.is_dir()
+    }
+}
+
+impl DirEntry for fs::DirEntry {
+    type Metadata = fs::Metadata;
+    fn path(&self) -> String {
+        self.path().to_str().unwrap().to_string()
+    }
+    fn metadata(&self) -> io::Result<Self::Metadata> {
+        self.metadata()
     }
 }
