@@ -1,5 +1,6 @@
 use std::{ffi::CStr, io};
 
+#[derive(Debug)]
 pub enum OperationResult {
     Ok(usize),
     Pending,
@@ -14,8 +15,9 @@ pub trait AsyncFile {
     type Operation<'a>: AsyncOperation
     where
         Self: 'a;
-    fn read<'a>(&'a mut self, buffer: &'a mut [u8]) -> io::Result<Self::Operation<'a>>;
-    fn write<'a>(&'a mut self, buffer: &'a [u8]) -> io::Result<Self::Operation<'a>>;
+    fn read<'a>(&'a mut self, offset: u64, buffer: &'a mut [u8])
+        -> io::Result<Self::Operation<'a>>;
+    fn write<'a>(&'a mut self, offset: u64, buffer: &'a [u8]) -> io::Result<Self::Operation<'a>>;
 }
 
 pub trait AsyncIo {

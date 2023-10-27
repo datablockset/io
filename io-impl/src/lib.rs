@@ -1,3 +1,8 @@
+mod async_io;
+mod unix;
+mod windows;
+mod windows_api;
+
 use std::{
     env::{args, Args},
     fs::{self, create_dir, File},
