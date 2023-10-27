@@ -49,8 +49,8 @@ impl AsyncIo for AIo {
 mod test {
     use std::{ffi::CString, thread::yield_now};
 
-    use super::{File, Overlapped, AIo};
-    use io_trait::{AsyncOperation, OperationResult, AsyncIo, AsyncFile};
+    use super::{AIo, File, Overlapped};
+    use io_trait::{AsyncFile, AsyncIo, AsyncOperation, OperationResult};
 
     #[test]
     fn test() {

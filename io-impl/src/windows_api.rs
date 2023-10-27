@@ -5,7 +5,6 @@
 
 use std::{
     io,
-    ops::BitOr,
     os::{raw::c_void, windows::raw::HANDLE},
     ptr::null_mut,
 };
@@ -35,11 +34,6 @@ const FALSE: BOOL = BOOL(0);
 const TRUE: BOOL = BOOL(1);
 pub const fn to_bool(x: BOOL) -> bool {
     x.0 != FALSE.0
-}
-impl From<BOOL> for bool {
-    fn from(val: BOOL) -> Self {
-        to_bool(val)
-    }
 }
 impl From<bool> for BOOL {
     fn from(x: bool) -> Self {
@@ -98,12 +92,14 @@ type LPOVERLAPPED = *mut OVERLAPPED;
 pub struct ACCESS_MASK(DWORD);
 pub const GENERIC_READ: ACCESS_MASK = ACCESS_MASK(0x80000000);
 pub const GENERIC_WRITE: ACCESS_MASK = ACCESS_MASK(0x40000000);
+/*
 impl BitOr for ACCESS_MASK {
     type Output = Self;
     fn bitor(self, rhs: Self) -> Self {
         ACCESS_MASK(self.0 | rhs.0)
     }
 }
+*/
 
 // https://learn.microsoft.com/en-us/windows/win32/api/wtypesbase/ns-wtypesbase-security_attributes
 #[repr(C)]
@@ -125,12 +121,14 @@ pub const OPEN_ALWAYS: CreationDisposition = CreationDisposition(4);
 #[repr(transparent)]
 pub struct FlagsAndAttributes(DWORD);
 pub const FILE_FLAG_OVERLAPPED: FlagsAndAttributes = FlagsAndAttributes(0x40000000);
+/*
 impl BitOr for FlagsAndAttributes {
     type Output = Self;
     fn bitor(self, rhs: Self) -> Self {
         FlagsAndAttributes(self.0 | rhs.0)
     }
 }
+*/
 
 // https://learn.microsoft.com/en-us/windows/win32/debug/system-error-codes--500-999-
 #[derive(PartialEq, Eq, Clone, Copy)]
