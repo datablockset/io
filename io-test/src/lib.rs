@@ -28,7 +28,7 @@ impl io_trait::Metadata for Metadata {
 pub struct VecRef(Rc<RefCell<Vec<u8>>>);
 
 impl VecRef {
-    pub fn to_string(&self) -> String {
+    pub fn to_stdout(&self) -> String {
         let mut result = String::default();
         for &c in self.0.borrow().iter() {
             if c == 8 {
