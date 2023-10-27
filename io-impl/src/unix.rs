@@ -1,4 +1,5 @@
 #![cfg(target_family = "unix")]
+#![cfg(not(tarpaulin_include))]
 
 use std::{ffi::CStr, io, mem::zeroed, thread::yield_now};
 
