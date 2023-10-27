@@ -1,7 +1,7 @@
+mod async_io;
 mod unix;
 mod windows;
 mod windows_api;
-mod async_io;
 
 use std::{
     env::{args, Args},
