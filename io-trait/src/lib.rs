@@ -1,13 +1,13 @@
+mod async_io;
 mod dir_entry;
 mod metadata;
-mod async_io;
 
 pub use async_io::*;
 pub use dir_entry::DirEntry;
 pub use metadata::Metadata;
 
 use std::{
-    fmt, fs,
+    fmt,
     io::{self, Read, Write},
 };
 
@@ -71,15 +71,5 @@ pub trait Io {
             }
         }
         Ok(result)
-    }
-}
-
-impl DirEntry for fs::DirEntry {
-    type Metadata = fs::Metadata;
-    fn path(&self) -> String {
-        self.path().to_str().unwrap().to_string()
-    }
-    fn metadata(&self) -> io::Result<Self::Metadata> {
-        self.metadata()
     }
 }

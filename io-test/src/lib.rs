@@ -28,7 +28,7 @@ impl io_trait::Metadata for Metadata {
 pub struct VecRef(Rc<RefCell<Vec<u8>>>);
 
 impl VecRef {
-    pub fn to_string(&self) -> String {
+    pub fn to_stdout(&self) -> String {
         let mut result = String::default();
         for &c in self.0.borrow().iter() {
             if c == 8 {
@@ -142,9 +142,9 @@ impl MemFile {
 
 impl Read for MemFile {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        let sorce = &self.vec_ref.0.borrow()[self.pos..];
-        let len = sorce.len().min(buf.len());
-        buf[..len].copy_from_slice(&sorce[..len]);
+        let source = &self.vec_ref.0.borrow()[self.pos..];
+        let len = source.len().min(buf.len());
+        buf[..len].copy_from_slice(&source[..len]);
         self.pos += len;
         Ok(len)
     }
@@ -212,14 +212,13 @@ impl Io for VirtualIo {
         check_path(path)?;
         fs.entity_map
             .get(path)
-            .map(|v| {
+            .and_then(|v| {
                 if let Entity::File(x) = v {
                     Some(MemFile::new(x.to_owned()))
                 } else {
                     None
                 }
             })
-            .flatten()
             .ok_or_else(not_found)
     }
     fn stdout(&self) -> VecRef {
@@ -248,7 +247,9 @@ impl Io for VirtualIo {
 
 #[cfg(test)]
 mod test {
-    use io_trait::Io;
+    use std::io::Write;
+
+    use io_trait::{DirEntry, Io, Metadata};
     use wasm_bindgen_test::wasm_bindgen_test;
 
     use crate::VirtualIo;
@@ -260,6 +261,47 @@ mod test {
         io.write("test.txt", "Hello, world!".as_bytes()).unwrap();
         let result = io.read_to_string("test.txt").unwrap();
         assert_eq!(result, "Hello, world!");
+        assert_eq!(io.metadata("test.txt").unwrap().len(), 13);
+    }
+
+    #[wasm_bindgen_test]
+    #[test]
+    fn test_args() {
+        let mut io = VirtualIo::new(&[]);
+        io.args = ["a".to_string(), "b".to_string()].to_vec();
+        let x = io.args().collect::<Vec<_>>();
+        assert_eq!(&x, &["a", "b"]);
+    }
+
+    #[wasm_bindgen_test]
+    #[test]
+    fn test_stdout() {
+        let io = VirtualIo::new(&[]);
+        let mut s = io.stdout();
+        s.write(b"Hello, world!\x08?").unwrap();
+        assert_eq!(s.to_stdout(), "Hello, world?");
+    }
+
+    #[wasm_bindgen_test]
+    #[test]
+    fn test_write() {
+        let io = VirtualIo::new(&[]);
+        io.write("test.txt", "Hello, world!".as_bytes()).unwrap();
+        let result = io.read("test.txt").unwrap();
+        assert_eq!(result, "Hello, world!".as_bytes());
+    }
+
+    #[wasm_bindgen_test]
+    #[test]
+    fn test_write_file() {
+        let io = VirtualIo::new(&[]);
+        {
+            let mut f = io.create("test.txt").unwrap();
+            f.write("Hello, world!".as_bytes()).unwrap();
+            f.flush().unwrap();
+        }
+        let result = io.read("test.txt").unwrap();
+        assert_eq!(result, "Hello, world!".as_bytes());
     }
 
     #[wasm_bindgen_test]
@@ -267,6 +309,7 @@ mod test {
     fn test_dir_fail() {
         let io = VirtualIo::new(&[]);
         assert!(io.write("a/test.txt", "Hello, world!".as_bytes()).is_err());
+        assert!(io.open("a").is_err());
     }
 
     #[wasm_bindgen_test]
@@ -279,6 +322,7 @@ mod test {
         assert!(io
             .write_recursively("a/test2.txt", "Hello, world!".as_bytes())
             .is_ok());
+        assert!(io.open("a").is_err());
     }
 
     #[wasm_bindgen_test]
@@ -288,6 +332,13 @@ mod test {
         assert!(io
             .write_recursively("a/b/test.txt", "Hello, world!".as_bytes())
             .is_ok());
+        let x = io
+            .read_dir_type("a", true)
+            .unwrap()
+            .iter()
+            .map(|v| v.path().to_owned())
+            .collect::<Vec<_>>();
+        assert_eq!(x, ["a/b"].to_vec());
     }
 
     #[wasm_bindgen_test]
