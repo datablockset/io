@@ -4,7 +4,6 @@
 #![allow(clippy::upper_case_acronyms)]
 
 use std::{
-    f32::consts::E,
     io,
     ops::BitOr,
     os::{raw::c_void, windows::raw::HANDLE},
@@ -117,11 +116,11 @@ type LPSECURITY_ATTRIBUTES = *mut SECURITY_ATTRIBUTES;
 
 #[repr(transparent)]
 pub struct CreationDisposition(DWORD);
-pub const CREATE_NEW: CreationDisposition = CreationDisposition(1);
+// pub const CREATE_NEW: CreationDisposition = CreationDisposition(1);
 pub const CREATE_ALWAYS: CreationDisposition = CreationDisposition(2);
-pub const OPEN_EXISTING: CreationDisposition = CreationDisposition(3);
+// pub const OPEN_EXISTING: CreationDisposition = CreationDisposition(3);
 pub const OPEN_ALWAYS: CreationDisposition = CreationDisposition(4);
-pub const TRUNCATE_EXISTING: CreationDisposition = CreationDisposition(5);
+// pub const TRUNCATE_EXISTING: CreationDisposition = CreationDisposition(5);
 
 #[repr(transparent)]
 pub struct FlagsAndAttributes(DWORD);

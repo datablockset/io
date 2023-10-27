@@ -143,7 +143,7 @@ impl Operation<'_> {
                 wait.into(),
             )
         };
-        to_operation_result(r.into(), result)
+        to_operation_result(r, result)
     }
 }
 
