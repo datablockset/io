@@ -26,7 +26,7 @@ mod test {
 
     #[test]
     fn test() {
-        let x = fs::read_dir("./").unwrap();
+        let x = fs::read_dir(".").unwrap();
         for i in x {
             let i = i.unwrap();
             assert_eq!(DirEntry::path(&i), i.path().to_str().unwrap());
