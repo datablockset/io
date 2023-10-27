@@ -263,6 +263,15 @@ mod test {
 
     #[wasm_bindgen_test]
     #[test]
+    fn test_read() {
+        let io = VirtualIo::new(&[]);
+        io.write("test.txt", "Hello, world!".as_bytes()).unwrap();
+        let result = io.read("test.txt").unwrap();
+        assert_eq!(result, "Hello, world!".as_bytes());
+    }
+
+    #[wasm_bindgen_test]
+    #[test]
     fn test_dir_fail() {
         let io = VirtualIo::new(&[]);
         assert!(io.write("a/test.txt", "Hello, world!".as_bytes()).is_err());
@@ -287,6 +296,8 @@ mod test {
         assert!(io
             .write_recursively("a/b/test.txt", "Hello, world!".as_bytes())
             .is_ok());
+        let x = io.read_dir_type("a", true).unwrap().iter().map(|v| v.path.to_owned()).collect::<Vec<_>>();
+        assert_eq!(x, vec!["a/b"]);
     }
 
     #[wasm_bindgen_test]

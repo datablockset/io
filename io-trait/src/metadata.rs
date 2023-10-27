@@ -14,3 +14,17 @@ impl Metadata for fs::Metadata {
         self.is_dir()
     }
 }
+
+#[cfg(test)]
+mod test {
+    use std::fs;
+
+    use crate::Metadata;
+
+    #[test]
+    fn test() {
+        let m = fs::metadata("Cargo.toml").unwrap();
+        assert_ne!(Metadata::len(&m), 0);
+        assert_eq!(Metadata::is_dir(&m), false);
+    }
+}
