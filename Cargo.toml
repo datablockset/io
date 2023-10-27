@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["io-trait"]
+members = ["io-trait", "io-impl"]
 
 [workspace.package]
 authors = ["Sergey Shandar"]
