@@ -74,9 +74,6 @@ mod test {
                             }
                             break;
                         }
-                        OperationResult::Eof => {
-                            panic!("eof");
-                        }
                         OperationResult::Pending => {
                             yield_now();
                         }
@@ -100,9 +97,6 @@ mod test {
                                     panic!();
                                 }
                                 break;
-                            }
-                            OperationResult::Eof => {
-                                panic!("eof");
                             }
                             OperationResult::Pending => {
                                 yield_now();
@@ -137,9 +131,6 @@ mod test {
                             }
                             break;
                         }
-                        OperationResult::Eof => {
-                            panic!("eof");
-                        }
                         OperationResult::Pending => {
                             yield_now();
                         }
@@ -162,9 +153,6 @@ mod test {
                             OperationResult::Ok(bytes_read) => {
                                 len = bytes_read;
                                 break;
-                            }
-                            OperationResult::Eof => {
-                                panic!("eof");
                             }
                             OperationResult::Pending => {
                                 yield_now();
@@ -196,9 +184,6 @@ mod test {
                         }
                         break;
                     }
-                    OperationResult::Eof => {
-                        panic!("eof");
-                    }
                     OperationResult::Pending => {
                         yield_now();
                     }
@@ -220,9 +205,6 @@ mod test {
                         match operation.get_result() {
                             OperationResult::Ok(bytes_read) => {
                                 len = bytes_read;
-                                break;
-                            }
-                            OperationResult::Eof => {
                                 break;
                             }
                             OperationResult::Pending => {

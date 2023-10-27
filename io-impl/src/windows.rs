@@ -29,7 +29,7 @@ fn to_operation_result(v: BOOL, result: DWORD) -> OperationResult {
             windows_api::ERROR_IO_PENDING | windows_api::ERROR_IO_INCOMPLETE => {
                 OperationResult::Pending
             }
-            windows_api::ERROR_HANDLE_EOF => OperationResult::Eof,
+            windows_api::ERROR_HANDLE_EOF => OperationResult::Ok(0),
             e => OperationResult::Err(e.to_error()),
         }
     }
