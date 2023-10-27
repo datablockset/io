@@ -52,7 +52,6 @@ mod test {
     use super::{File, Overlapped};
     use io_trait::{AsyncOperation, OperationResult};
 
-    /*
     #[test]
     fn test() {
         //
@@ -111,7 +110,6 @@ mod test {
             }
         }
     }
-    */
 
     #[test]
     fn test2() {
