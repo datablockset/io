@@ -16,12 +16,12 @@ struct AFile {
 impl AsyncFile for AFile {
     type Operation<'a> = Operation<'a>;
 
-    fn read<'a>(&'a mut self, buffer: &'a mut [u8]) -> io::Result<Self::Operation<'a>> {
-        self.file.read(&mut self.overlapped, buffer)
+    fn read<'a>(&'a mut self, offset: u64, buffer: &'a mut [u8]) -> io::Result<Self::Operation<'a>> {
+        self.file.read(&mut self.overlapped, offset, buffer)
     }
 
-    fn write<'a>(&'a mut self, buffer: &'a [u8]) -> io::Result<Self::Operation<'a>> {
-        self.file.write(&mut self.overlapped, buffer)
+    fn write<'a>(&'a mut self, offset: u64, buffer: &'a [u8]) -> io::Result<Self::Operation<'a>> {
+        self.file.write(&mut self.overlapped, offset, buffer)
     }
 }
 
@@ -61,7 +61,7 @@ mod test {
             let origin = b"Hello World!";
             {
                 let mut handle = aio.create(&x).unwrap();
-                let mut operation = handle.write(origin).unwrap();
+                let mut operation = handle.write(0, origin).unwrap();
                 loop {
                     match operation.get_result() {
                         OperationResult::Ok(bytes_written) => {
@@ -85,7 +85,7 @@ mod test {
                 let mut handle = aio.open(&x).unwrap();
                 let mut buffer = [0u8; 1024];
                 {
-                    let mut operation = handle.read(&mut buffer).unwrap();
+                    let mut operation = handle.read(0, &mut buffer).unwrap();
                     loop {
                         match operation.get_result() {
                             OperationResult::Ok(bytes_written) => {
@@ -118,7 +118,7 @@ mod test {
         for _ in 0..1000 {
             {
                 let mut file = aio.create(&x).unwrap();
-                let mut operation = file.write(origin.as_bytes()).unwrap();
+                let mut operation = file.write(0, origin.as_bytes()).unwrap();
                 loop {
                     match operation.get_result() {
                         OperationResult::Ok(bytes_written) => {
@@ -143,7 +143,7 @@ mod test {
                 let mut buffer = [0u8; 1024];
                 let mut len = 0;
                 {
-                    let mut operation = file.read(&mut buffer).unwrap();
+                    let mut operation = file.read(0, &mut buffer).unwrap();
                     loop {
                         match operation.get_result() {
                             OperationResult::Ok(bytes_read) => {
@@ -171,7 +171,7 @@ mod test {
         let origin = "Hello, world!".repeat(100);
         {
             let mut file = aio.create(&x).unwrap();
-            let mut operation = file.write(origin.as_bytes()).unwrap();
+            let mut operation = file.write(0, origin.as_bytes()).unwrap();
             loop {
                 match operation.get_result() {
                     OperationResult::Ok(bytes_written) => {
@@ -194,9 +194,9 @@ mod test {
             let mut v = Vec::default();
             loop {
                 let mut buffer = [0u8; 10];
-                let mut len = 0;
+                let mut len: usize = 0;
                 {
-                    let mut operation = file.read(&mut buffer).unwrap();
+                    let mut operation = file.read(0, &mut buffer).unwrap();
                     loop {
                         match operation.get_result() {
                             OperationResult::Ok(bytes_read) => {

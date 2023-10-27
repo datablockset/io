@@ -8,7 +8,7 @@ use crate::windows_api::{
     self, to_bool, CancelIoEx, CloseHandle, CreateFileA, CreationDisposition, GetLastError,
     GetOverlappedResult, ReadFile, WriteFile, ACCESS_MASK, BOOL, CREATE_ALWAYS, DWORD,
     FILE_FLAG_OVERLAPPED, GENERIC_READ, GENERIC_WRITE, INVALID_HANDLE_VALUE, LPCVOID, LPVOID,
-    OPEN_ALWAYS, OVERLAPPED,
+    OPEN_ALWAYS, OVERLAPPED, FILE_BEGIN, SetFilePointerEx,
 };
 
 pub struct File(HANDLE);
@@ -79,12 +79,19 @@ impl File {
         }
     }
 
+    fn set_offset(&mut self, overlapped: &mut Overlapped, offset: u64) -> BOOL {
+        let mut p = 0;
+        unsafe { SetFilePointerEx(self.0, offset as i64, &mut p, FILE_BEGIN) }
+    }
+
     pub fn read<'a>(
         &'a mut self,
         overlapped: &'a mut Overlapped,
+        offset: u64,
         buffer: &'a mut [u8], // it's important that the buffer has the same life time as the overlapped!
     ) -> io::Result<Operation<'a>> {
         *overlapped = Default::default();
+        self.set_offset(overlapped, offset);
         let result = unsafe {
             ReadFile(
                 self.0,
@@ -100,9 +107,11 @@ impl File {
     pub fn write<'a>(
         &'a mut self,
         overlapped: &'a mut Overlapped,
+        offset: u64,
         buffer: &'a [u8], // it's important that the buffer has the same life time as the overlapped!
     ) -> io::Result<Operation<'a>> {
         *overlapped = Default::default();
+        self.set_offset(overlapped, offset);
         let result = unsafe {
             WriteFile(
                 self.0,
