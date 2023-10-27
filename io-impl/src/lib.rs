@@ -1,14 +1,47 @@
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
-}
+use std::{
+    env::{args, Args},
+    fs::{self, create_dir, File},
+    io::{self, Stdout},
+};
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+use io_trait::Io;
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
+#[derive(Default)]
+pub struct RealIo();
+
+impl Io for RealIo {
+    type Args = Args;
+
+    type Stdout = Stdout;
+    type File = File;
+    type Metadata = fs::Metadata;
+    type DirEntry = fs::DirEntry;
+
+    fn args(&self) -> Self::Args {
+        args()
+    }
+
+    fn create(&self, path: &str) -> io::Result<Self::File> {
+        File::create(path)
+    }
+
+    fn open(&self, path: &str) -> io::Result<Self::File> {
+        File::open(path)
+    }
+
+    fn metadata(&self, path: &str) -> io::Result<fs::Metadata> {
+        fs::metadata(path)
+    }
+
+    fn read_dir(&self, path: &str) -> io::Result<Vec<Self::DirEntry>> {
+        fs::read_dir(path)?.collect()
+    }
+
+    fn create_dir(&self, path: &str) -> io::Result<()> {
+        create_dir(path)
+    }
+
+    fn stdout(&self) -> Self::Stdout {
+        io::stdout()
     }
 }
