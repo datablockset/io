@@ -212,14 +212,13 @@ impl Io for VirtualIo {
         check_path(path)?;
         fs.entity_map
             .get(path)
-            .map(|v| {
+            .and_then(|v| {
                 if let Entity::File(x) = v {
                     Some(MemFile::new(x.to_owned()))
                 } else {
                     None
                 }
             })
-            .flatten()
             .ok_or_else(not_found)
     }
     fn stdout(&self) -> VecRef {
