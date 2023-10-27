@@ -249,7 +249,7 @@ impl Io for VirtualIo {
 mod test {
     use std::io::Write;
 
-    use io_trait::{Io, Metadata, DirEntry};
+    use io_trait::{DirEntry, Io, Metadata};
     use wasm_bindgen_test::wasm_bindgen_test;
 
     use crate::VirtualIo;

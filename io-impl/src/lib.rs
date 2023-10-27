@@ -48,7 +48,10 @@ impl Io for RealIo {
 
 #[cfg(test)]
 mod test {
-    use std::{io::{Write, Read}, fs};
+    use std::{
+        fs,
+        io::{Read, Write},
+    };
 
     use io_trait::Io;
 

@@ -1,4 +1,4 @@
-use std::{io, fs};
+use std::{fs, io};
 
 use crate::Metadata;
 
@@ -30,7 +30,10 @@ mod test {
         for i in x {
             let i = i.unwrap();
             assert_eq!(DirEntry::path(&i), i.path().to_str().unwrap());
-            assert_eq!(DirEntry::metadata(&i).unwrap().is_dir(), i.metadata().unwrap().is_dir());
+            assert_eq!(
+                DirEntry::metadata(&i).unwrap().is_dir(),
+                i.metadata().unwrap().is_dir()
+            );
         }
     }
 }
