@@ -11,3 +11,4 @@ repository.workspace = true
 
 [dependencies]
 io-trait = { path = "../io-trait", version = "0.1.4" }
+libc = { workspace = "true" }
