@@ -1,6 +1,6 @@
+mod async_io;
 mod dir_entry;
 mod metadata;
-mod async_io;
 
 pub use async_io::*;
 pub use dir_entry::DirEntry;
