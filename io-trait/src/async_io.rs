@@ -16,7 +16,8 @@ pub trait AsyncFile {
     type Operation<'a>: AsyncOperation
     where
         Self: 'a;
-    fn read<'a>(&'a mut self, offset: u64, buffer: &'a mut [u8]) -> io::Result<Self::Operation<'a>>;
+    fn read<'a>(&'a mut self, offset: u64, buffer: &'a mut [u8])
+        -> io::Result<Self::Operation<'a>>;
     fn write<'a>(&'a mut self, offset: u64, buffer: &'a [u8]) -> io::Result<Self::Operation<'a>>;
 }
 
