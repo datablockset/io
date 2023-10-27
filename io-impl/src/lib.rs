@@ -45,3 +45,38 @@ impl Io for RealIo {
         io::stdout()
     }
 }
+
+#[cfg(test)]
+mod test {
+    use std::{io::{Write, Read}, fs};
+
+    use io_trait::Io;
+
+    #[test]
+    fn test_arg() {
+        let io = super::RealIo::default();
+        let a = io.args().collect::<Vec<_>>();
+        assert!(a.len() > 0);
+    }
+
+    #[test]
+    fn test_file() {
+        let io = super::RealIo::default();
+        {
+            let mut file = io.create("_test_file").unwrap();
+            file.write_all(b"test").unwrap();
+        }
+        {
+            let mut file = io.open("_test_file").unwrap();
+            let mut buf = Vec::default();
+            file.read_to_end(&mut buf).unwrap();
+            assert_eq!(buf, b"test");
+        }
+        io.metadata("_test_file").unwrap();
+        io.read_dir(".").unwrap();
+        fs::remove_file("_test_file").unwrap();
+        io.create_dir("_test_dir").unwrap();
+        fs::remove_dir("_test_dir").unwrap();
+        let _ = io.stdout();
+    }
+}
