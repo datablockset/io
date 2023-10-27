@@ -49,7 +49,7 @@ impl AsyncIo for AIo {
 mod test {
     use std::{ffi::CString, thread::yield_now};
 
-    use super::{AIo, File, Overlapped};
+    use super::AIo;
     use io_trait::{AsyncFile, AsyncIo, AsyncOperation, OperationResult};
 
     #[test]
@@ -161,6 +161,63 @@ mod test {
                 }
                 assert_eq!(&buffer[..len], origin.as_bytes());
             }
+        }
+    }
+
+    #[test]
+    fn test3() {
+        let aio = AIo();
+        let x: CString = CString::new("_big_test.txt").unwrap();
+        let origin = "Hello, world!".repeat(100);
+        {
+            let mut file = aio.create(&x).unwrap();
+            let mut operation = file.write(origin.as_bytes()).unwrap();
+            loop {
+                match operation.get_result() {
+                    OperationResult::Ok(bytes_written) => {
+                        if bytes_written != origin.len() {
+                            panic!();
+                        }
+                        break;
+                    }
+                    OperationResult::Pending => {
+                        yield_now();
+                    }
+                    OperationResult::Err(e) => {
+                        panic!("e: {}", e);
+                    }
+                }
+            }
+        }
+        {
+            let mut file = aio.open(&x).unwrap();
+            let mut v = Vec::default();
+            loop {
+                let mut buffer = [0u8; 10];
+                let mut len = 0;
+                {
+                    let mut operation = file.read(&mut buffer).unwrap();
+                    loop {
+                        match operation.get_result() {
+                            OperationResult::Ok(bytes_read) => {
+                                len = bytes_read;
+                                break;
+                            }
+                            OperationResult::Pending => {
+                                yield_now();
+                            }
+                            OperationResult::Err(e) => {
+                                panic!("e: {}", e);
+                            }
+                        }
+                    }
+                }
+                if len == 0 {
+                    break;
+                }
+                v.extend_from_slice(&buffer[..len]);
+            }
+            assert_eq!(&v, origin.as_bytes());
         }
     }
 }
