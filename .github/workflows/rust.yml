@@ -11,12 +11,21 @@ env:
 
 jobs:
   build:
+    strategy:
+      matrix:
+        # https://docs.github.com/en/actions/using-jobs/choosing-the-runner-for-a-job#choosing-github-hosted-runners
+        os: [windows-latest, ubuntu-latest, macos-13]
 
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
 
     steps:
     - uses: actions/checkout@v3
-    - name: Build
-      run: cargo build --verbose
-    - name: Run tests
-      run: cargo test --verbose
+    - run: cargo install cargo-tarpaulin
+    - run: cargo fmt --check
+    - run: cargo clippy -- -D warnings
+    - run: cargo t
+    - run: cargo c
+    - uses: actions/upload-artifact@v3
+      with:
+        path: tarpaulin-report.html
+      if: always()
