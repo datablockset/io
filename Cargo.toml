@@ -1,0 +1,7 @@
+[workspace]
+members = ["io-trait"]
+
+[workspace.package]
+authors = ["Sergey Shandar"]
+license = "MIT"
+repository = "https://github.com/datablockset/io"

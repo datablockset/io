@@ -1,0 +1,12 @@
+[package]
+name = "io-trait"
+version = "0.0.0"
+edition = "2021"
+description = "I/O traits"
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
