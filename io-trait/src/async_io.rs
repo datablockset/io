@@ -4,6 +4,7 @@ use std::{ffi::CStr, io};
 pub enum OperationResult {
     Ok(usize),
     Pending,
+    Eof,
     Err(io::Error),
 }
 

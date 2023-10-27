@@ -27,10 +27,6 @@ type PVOID = *mut c_void;
 // https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-dtyp/21eec394-630d-49ed-8b4a-ab74a1614611
 type ULONG_PTR = usize;
 
-// https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-large_integer-r1
-type LARGE_INTEGER = i64;
-type PLARGE_INTEGER = *mut LARGE_INTEGER;
-
 // https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-dtyp/9d81be47-232e-42cf-8f0d-7a3b29bf2eb2
 #[derive(Copy, Clone)]
 #[repr(transparent)]
@@ -54,18 +50,18 @@ impl From<bool> for BOOL {
 
 #[repr(C)]
 #[derive(Copy, Clone)]
-struct OVERLAPPED_0_0 {
-    Offset: DWORD,
-    OffsetHigh: DWORD,
+pub struct OVERLAPPED_Offset {
+    pub Offset: DWORD,
+    pub OffsetHigh: DWORD,
 }
 
 #[repr(C)]
-union OVERLAPPED_0 {
-    DUMMYSTRUCTNAME: OVERLAPPED_0_0,
+pub union OVERLAPPED_OffsetOrPointer {
+    pub Offset: OVERLAPPED_Offset,
     Pointer: PVOID,
 }
 
-impl Default for OVERLAPPED_0 {
+impl Default for OVERLAPPED_OffsetOrPointer {
     fn default() -> Self {
         unsafe { std::mem::zeroed() }
     }
@@ -75,7 +71,7 @@ impl Default for OVERLAPPED_0 {
 pub struct OVERLAPPED {
     Internal: ULONG_PTR,
     InternalHigh: ULONG_PTR,
-    DUMMYUNIONNAME: OVERLAPPED_0,
+    pub OffsetOrPointer: OVERLAPPED_OffsetOrPointer,
     hEvent: HANDLE,
 }
 
@@ -84,7 +80,7 @@ impl Default for OVERLAPPED {
         OVERLAPPED {
             Internal: 0,
             InternalHigh: 0,
-            DUMMYUNIONNAME: OVERLAPPED_0::default(),
+            OffsetOrPointer: OVERLAPPED_OffsetOrPointer::default(),
             hEvent: null_mut(),
         }
     }
@@ -135,16 +131,11 @@ impl BitOr for FlagsAndAttributes {
 }
 */
 
-#[repr(transparent)]
-pub struct MoveMethod(DWORD);
-pub const FILE_BEGIN: MoveMethod = MoveMethod(0);
-pub const FILE_CURRENT: MoveMethod = MoveMethod(1);
-pub const FILE_END: MoveMethod = MoveMethod(2);
-
 // https://learn.microsoft.com/en-us/windows/win32/debug/system-error-codes--500-999-
-#[derive(PartialEq, Eq, Clone, Copy)]
+#[derive(PartialEq, Eq, Clone, Copy, Debug)]
 #[repr(transparent)]
 pub struct Error(DWORD);
+pub const ERROR_HANDLE_EOF: Error = Error(38);
 pub const ERROR_IO_INCOMPLETE: Error = Error(996);
 pub const ERROR_IO_PENDING: Error = Error(997);
 impl Error {
@@ -222,15 +213,4 @@ extern "system" {
 #[link(name = "kernel32")]
 extern "system" {
     pub fn GetLastError() -> Error;
-}
-
-// https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-setfilepointerex
-#[link(name = "kernel32")]
-extern "system" {
-    pub fn SetFilePointerEx(
-        hFile: HANDLE, // [in]
-        liDistanceToMove: LARGE_INTEGER, // [in]
-        lpNewFilePointer: PLARGE_INTEGER, // [out, optional]
-        dwMoveMethod: MoveMethod, // [in]
-    ) -> BOOL;
 }

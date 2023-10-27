@@ -16,7 +16,11 @@ struct AFile {
 impl AsyncFile for AFile {
     type Operation<'a> = Operation<'a>;
 
-    fn read<'a>(&'a mut self, offset: u64, buffer: &'a mut [u8]) -> io::Result<Self::Operation<'a>> {
+    fn read<'a>(
+        &'a mut self,
+        offset: u64,
+        buffer: &'a mut [u8],
+    ) -> io::Result<Self::Operation<'a>> {
         self.file.read(&mut self.overlapped, offset, buffer)
     }
 
@@ -70,6 +74,9 @@ mod test {
                             }
                             break;
                         }
+                        OperationResult::Eof => {
+                            panic!("eof");
+                        }
                         OperationResult::Pending => {
                             yield_now();
                         }
@@ -93,6 +100,9 @@ mod test {
                                     panic!();
                                 }
                                 break;
+                            }
+                            OperationResult::Eof => {
+                                panic!("eof");
                             }
                             OperationResult::Pending => {
                                 yield_now();
@@ -127,6 +137,9 @@ mod test {
                             }
                             break;
                         }
+                        OperationResult::Eof => {
+                            panic!("eof");
+                        }
                         OperationResult::Pending => {
                             yield_now();
                         }
@@ -149,6 +162,9 @@ mod test {
                             OperationResult::Ok(bytes_read) => {
                                 len = bytes_read;
                                 break;
+                            }
+                            OperationResult::Eof => {
+                                panic!("eof");
                             }
                             OperationResult::Pending => {
                                 yield_now();
@@ -180,6 +196,9 @@ mod test {
                         }
                         break;
                     }
+                    OperationResult::Eof => {
+                        panic!("eof");
+                    }
                     OperationResult::Pending => {
                         yield_now();
                     }
@@ -193,14 +212,17 @@ mod test {
             let mut file = aio.open(&x).unwrap();
             let mut v = Vec::default();
             loop {
-                let mut buffer = [0u8; 10];
+                let mut buffer = [0u8; 1024];
                 let mut len: usize = 0;
                 {
-                    let mut operation = file.read(0, &mut buffer).unwrap();
+                    let mut operation = file.read(v.len() as u64, &mut buffer).unwrap();
                     loop {
                         match operation.get_result() {
                             OperationResult::Ok(bytes_read) => {
                                 len = bytes_read;
+                                break;
+                            }
+                            OperationResult::Eof => {
                                 break;
                             }
                             OperationResult::Pending => {
