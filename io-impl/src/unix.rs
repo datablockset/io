@@ -73,6 +73,7 @@ impl File {
     fn create_operation<'a>(
         &'a mut self,
         overlapped: &'a mut Overlapped,
+        offset: u64,
         buffer: &'a [u8],
         f: unsafe extern "C" fn(*mut aiocb) -> i32,
     ) -> io::Result<Operation<'a>> {
@@ -80,6 +81,7 @@ impl File {
         overlapped.0.aio_fildes = self.0;
         overlapped.0.aio_buf = buffer.as_ptr() as *mut _;
         overlapped.0.aio_nbytes = buffer.len();
+        overlapped.0.aio_offset = offset as i64;
         if unsafe { f(&mut overlapped.0) } == -1 {
             Err(io::Error::last_os_error())
         } else {
@@ -92,16 +94,18 @@ impl File {
     pub fn write<'a>(
         &'a mut self,
         overlapped: &'a mut Overlapped,
+        offset: u64,
         buffer: &'a [u8],
     ) -> io::Result<Operation<'a>> {
-        self.create_operation(overlapped, buffer, aio_write)
+        self.create_operation(overlapped, offset, buffer, aio_write)
     }
     pub fn read<'a>(
         &'a mut self,
         overlapped: &'a mut Overlapped,
+        offset: u64,
         buffer: &'a mut [u8],
     ) -> io::Result<Operation<'a>> {
-        self.create_operation(overlapped, buffer, aio_read)
+        self.create_operation(overlapped, offset, buffer, aio_read)
     }
 }
 
