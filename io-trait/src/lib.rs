@@ -1,6 +1,6 @@
 use std::{
-    fmt,
-    io::{self, Read, Write}, fs,
+    fmt, fs,
+    io::{self, Read, Write},
 };
 
 #[allow(clippy::len_without_is_empty)]
