@@ -4,6 +4,7 @@
 #![allow(clippy::upper_case_acronyms)]
 
 use std::{
+    f32::consts::E,
     io,
     ops::BitOr,
     os::{raw::c_void, windows::raw::HANDLE},
@@ -28,6 +29,7 @@ type PVOID = *mut c_void;
 type ULONG_PTR = usize;
 
 // https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-dtyp/9d81be47-232e-42cf-8f0d-7a3b29bf2eb2
+#[derive(Copy, Clone)]
 #[repr(transparent)]
 pub struct BOOL(i32);
 const FALSE: BOOL = BOOL(0);
@@ -132,9 +134,10 @@ impl BitOr for FlagsAndAttributes {
 }
 
 // https://learn.microsoft.com/en-us/windows/win32/debug/system-error-codes--500-999-
-#[derive(PartialEq, Clone, Copy)]
+#[derive(PartialEq, Eq, Clone, Copy)]
 #[repr(transparent)]
 pub struct Error(DWORD);
+pub const ERROR_IO_INCOMPLETE: Error = Error(996);
 pub const ERROR_IO_PENDING: Error = Error(997);
 impl Error {
     pub fn to_error(self) -> io::Error {

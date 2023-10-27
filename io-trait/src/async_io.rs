@@ -1,5 +1,6 @@
 use std::{ffi::CStr, io};
 
+#[derive(Debug)]
 pub enum OperationResult {
     Ok(usize),
     Pending,

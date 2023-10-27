@@ -4,10 +4,10 @@ use std::{ffi::CStr, io, os::windows::raw::HANDLE, ptr::null_mut};
 use io_trait::{AsyncOperation, OperationResult};
 
 use crate::windows_api::{
-    to_bool, CancelIoEx, CloseHandle, CreateFileA, CreationDisposition, GetLastError,
+    self, to_bool, CancelIoEx, CloseHandle, CreateFileA, CreationDisposition, GetLastError,
     GetOverlappedResult, ReadFile, WriteFile, ACCESS_MASK, BOOL, CREATE_ALWAYS, DWORD,
-    ERROR_IO_PENDING, FILE_FLAG_OVERLAPPED, GENERIC_READ, GENERIC_WRITE, INVALID_HANDLE_VALUE,
-    LPCVOID, LPVOID, OPEN_ALWAYS, OVERLAPPED,
+    FILE_FLAG_OVERLAPPED, GENERIC_READ, GENERIC_WRITE, INVALID_HANDLE_VALUE, LPCVOID, LPVOID,
+    OPEN_ALWAYS, OVERLAPPED,
 };
 
 pub struct File(HANDLE);
@@ -20,15 +20,15 @@ impl Drop for File {
     }
 }
 
-fn to_operation_result(v: BOOL) -> OperationResult {
+fn to_operation_result(v: BOOL, result: DWORD) -> OperationResult {
     if to_bool(v) {
-        OperationResult::Ok(0)
+        OperationResult::Ok(result as usize)
     } else {
-        let e = unsafe { GetLastError() };
-        if e == ERROR_IO_PENDING {
-            OperationResult::Pending
-        } else {
-            OperationResult::Err(e.to_error())
+        match unsafe { GetLastError() } {
+            windows_api::ERROR_IO_PENDING | windows_api::ERROR_IO_INCOMPLETE => {
+                OperationResult::Pending
+            }
+            e => OperationResult::Err(e.to_error()),
         }
     }
 }
@@ -68,7 +68,7 @@ impl File {
         overlapped: &'a mut Overlapped,
         result: BOOL,
     ) -> io::Result<Operation<'a>> {
-        if let OperationResult::Err(e) = to_operation_result(result) {
+        if let OperationResult::Err(e) = to_operation_result(result, 0) {
             Err(e)
         } else {
             Ok(Operation {
@@ -143,16 +143,7 @@ impl Operation<'_> {
                 wait.into(),
             )
         };
-        if r.into() {
-            OperationResult::Ok(result as usize)
-        } else {
-            let e = unsafe { GetLastError() };
-            if e == ERROR_IO_PENDING {
-                OperationResult::Pending
-            } else {
-                OperationResult::Err(e.to_error())
-            }
-        }
+        to_operation_result(r.into(), result)
     }
 }
 
