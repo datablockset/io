@@ -30,10 +30,7 @@ fn to_operation_result(v: BOOL, result: DWORD) -> OperationResult {
                 OperationResult::Pending
             }
             windows_api::ERROR_HANDLE_EOF => OperationResult::Eof,
-            e => {
-                println!("we: {:?}", e);
-                OperationResult::Err(e.to_error())
-            }
+            e => OperationResult::Err(e.to_error()),
         }
     }
 }
