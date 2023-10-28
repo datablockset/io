@@ -20,4 +20,9 @@ pub trait AsyncTrait {
         overlapped: &mut Self::Overlapped,
         buffer: &mut [u8],
     ) -> io::Result<()>;
+    fn write(
+        handle: Self::Handle,
+        overlapped: &mut Self::Overlapped,
+        buffer: &[u8],
+    ) -> io::Result<()>;
 }

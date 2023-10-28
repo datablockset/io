@@ -114,6 +114,21 @@ impl AsyncTrait for Windows {
             )
         })
     }
+    fn write(
+            handle: Self::Handle,
+            overlapped: &mut Self::Overlapped,
+            buffer: &[u8],
+        ) -> io::Result<()> {
+        to_operation_error(unsafe {
+            WriteFile(
+                handle,
+                buffer.as_ptr() as LPCVOID,
+                buffer.len() as DWORD,
+                null_mut(),
+                overlapped,
+            )
+        })
+    }
 }
 
 #[repr(transparent)]
@@ -133,6 +148,7 @@ impl File {
         Windows::open(file_name, false).map(File)
     }
 
+    /*
     fn create_operation<'a>(
         &'a mut self,
         overlapped: &'a mut Overlapped,
@@ -147,6 +163,7 @@ impl File {
         }
         Err(e.to_error())
     }
+    */
 
     pub fn read<'a>(
         &'a mut self,
@@ -168,16 +185,10 @@ impl File {
         buffer: &'a [u8], // it's important that the buffer has the same life time as the overlapped!
     ) -> io::Result<Operation<'a>> {
         Windows::init_overlapped(self.0, &mut overlapped.0, offset, buffer);
-        let result = unsafe {
-            WriteFile(
-                self.0,
-                buffer.as_ptr() as LPCVOID,
-                buffer.len() as DWORD,
-                null_mut(),
-                &mut overlapped.0,
-            )
-        };
-        self.create_operation(overlapped, result)
+        Windows::write(self.0, &mut overlapped.0, buffer).map(|_| Operation {
+            handle: self,
+            overlapped,
+        })
     }
 }
 
