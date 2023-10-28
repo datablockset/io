@@ -20,18 +20,14 @@ impl AsyncTrait for Windows {
     type Handle = HANDLE;
     type Overlapped = OVERLAPPED;
     fn close(handle: Self::Handle) {
-        unsafe {
-            CloseHandle(handle);
-        }
+        unsafe { CloseHandle(handle) };
     }
     fn cancel(handle: Self::Handle, overlapped: &mut Self::Overlapped) {
         if unsafe { CancelIoEx(handle, overlapped) }.to_bool() {
             return;
         }
-        unsafe {
-            let mut n = 0;
-            let _ = GetOverlappedResult(handle, overlapped, &mut n, TRUE);
-        }
+        let mut n = 0;
+        let _ = unsafe { GetOverlappedResult(handle, overlapped, &mut n, TRUE) };
     }
 }
 
