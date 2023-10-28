@@ -65,10 +65,7 @@ impl AsyncTrait for Unix {
         } else {
             libc::O_RDONLY
         };
-        match unsafe { open(path.as_ptr(), oflag, 0o644) } {
-            -1 => Err(io::Error::last_os_error()),
-            fd => Ok(fd),
-        }
+        to_result(unsafe { open(path.as_ptr(), oflag, 0o644) })
     }
     fn init_overlapped(
         handle: Self::Handle,
