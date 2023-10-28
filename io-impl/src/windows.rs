@@ -157,23 +157,6 @@ impl Drop for Operation<'_> {
     }
 }
 
-impl Operation<'_> {
-    /*
-    fn get_result(&mut self, wait: bool) -> OperationResult {
-        let mut result: DWORD = 0;
-        let r = unsafe {
-            GetOverlappedResult(
-                self.handle.0,
-                &mut self.overlapped.0,
-                &mut result,
-                wait.into(),
-            )
-        };
-        to_operation_result(r, result)
-    }
-    */
-}
-
 impl AsyncOperation for Operation<'_> {
     fn get_result(&mut self) -> OperationResult {
         Windows::get_result(self.handle.0, &mut self.overlapped.0)
