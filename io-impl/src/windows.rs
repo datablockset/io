@@ -28,14 +28,21 @@ fn get_last_error(v: BOOL) -> Error {
     unsafe { GetLastError() }
 }
 
+fn is_pending(e: Error) -> bool {
+    e == windows_api::ERROR_IO_PENDING || e == windows_api::ERROR_IO_INCOMPLETE
+}
+
 fn to_operation_result((v, size): (BOOL, DWORD)) -> OperationResult {
     match get_last_error(v) {
         windows_api::ERROR_SUCCESS => OperationResult::Ok(size as usize),
-        windows_api::ERROR_IO_PENDING | windows_api::ERROR_IO_INCOMPLETE => {
-            OperationResult::Pending
-        }
         windows_api::ERROR_HANDLE_EOF => OperationResult::Ok(0),
-        e => OperationResult::Err(e.to_error()),
+        e => {
+            if is_pending(e) {
+                OperationResult::Pending
+            } else {
+                OperationResult::Err(e.to_error())
+            }
+        }
     }
 }
 
@@ -107,13 +114,14 @@ impl File {
         overlapped: &'a mut Overlapped,
         result: BOOL,
     ) -> io::Result<Operation<'a>> {
-        if let OperationResult::Err(e) = to_operation_result((result, 0)) {
-            return Err(e);
+        let e = get_last_error(result);
+        if e == windows_api::ERROR_SUCCESS || is_pending(e) {
+            return Ok(Operation {
+                handle: self,
+                overlapped,
+            });
         }
-        Ok(Operation {
-            handle: self,
-            overlapped,
-        })
+        Err(e.to_error())
     }
 
     pub fn read<'a>(
