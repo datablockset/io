@@ -47,6 +47,17 @@ impl AsyncTrait for Unix {
             e => OperationResult::Err(io::Error::from_raw_os_error(e.0)),
         }
     }
+    fn open(path: &CStr, create: bool) -> io::Result<Self::Handle> {
+        let oflag = if create {
+            libc::O_WRONLY | libc::O_CREAT | libc::O_TRUNC
+        } else {
+            libc::O_RDONLY
+        };
+        match unsafe { open(path.as_ptr(), oflag, 0o644) } {
+            -1 => Err(io::Error::last_os_error()),
+            fd => Ok(fd),
+        }
+    }
 }
 
 pub struct File(i32);
@@ -83,19 +94,11 @@ impl Operation<'_> {
 }
 
 impl File {
-    fn internal_open(path: &CStr, oflag: i32) -> io::Result<Self> {
-        let fd = unsafe { open(path.as_ptr(), oflag, 0o644) };
-        if fd == -1 {
-            Err(io::Error::last_os_error())
-        } else {
-            Ok(Self(fd))
-        }
-    }
     pub fn create(path: &CStr) -> io::Result<Self> {
-        File::internal_open(path, libc::O_WRONLY | libc::O_CREAT | libc::O_TRUNC)
+        Unix::open(path, true).map(Self)
     }
     pub fn open(path: &CStr) -> io::Result<Self> {
-        File::internal_open(path, libc::O_RDONLY)
+        Unix::open(path, false).map(Self)
     }
     fn create_operation<'a>(
         &'a mut self,
