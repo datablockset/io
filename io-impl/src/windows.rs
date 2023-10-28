@@ -176,6 +176,7 @@ impl File {
 }
 
 #[derive(Default)]
+#[repr(transparent)]
 pub struct Overlapped(OVERLAPPED);
 
 pub struct Operation<'a> {
