@@ -46,7 +46,7 @@ fn to_operation_result((v, size): (BOOL, DWORD)) -> OperationResult {
     }
 }
 
-fn create_operation_error(result: BOOL) -> io::Result<()> {
+fn to_operation_error(result: BOOL) -> io::Result<()> {
     let e = get_last_error(result);
     if e == windows_api::ERROR_SUCCESS || is_pending(e) {
         return Ok(());
@@ -104,7 +104,7 @@ impl AsyncTrait for Windows {
         overlapped: &mut Self::Overlapped,
         buffer: &mut [u8],
     ) -> io::Result<()> {
-        create_operation_error(unsafe {
+        to_operation_error(unsafe {
             ReadFile(
                 handle,
                 buffer.as_mut_ptr() as LPVOID,
