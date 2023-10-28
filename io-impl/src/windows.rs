@@ -24,15 +24,14 @@ fn get_overlapped_result(handle: HANDLE, overlapped: &mut OVERLAPPED, wait: bool
 
 fn to_operation_result((v, size): (BOOL, DWORD)) -> OperationResult {
     if v.to_bool() {
-        OperationResult::Ok(size as usize)
-    } else {
-        match unsafe { GetLastError() } {
-            windows_api::ERROR_IO_PENDING | windows_api::ERROR_IO_INCOMPLETE => {
-                OperationResult::Pending
-            }
-            windows_api::ERROR_HANDLE_EOF => OperationResult::Ok(0),
-            e => OperationResult::Err(e.to_error()),
+        return OperationResult::Ok(size as usize);
+    }
+    match unsafe { GetLastError() } {
+        windows_api::ERROR_IO_PENDING | windows_api::ERROR_IO_INCOMPLETE => {
+            OperationResult::Pending
         }
+        windows_api::ERROR_HANDLE_EOF => OperationResult::Ok(0),
+        e => OperationResult::Err(e.to_error()),
     }
 }
 
