@@ -5,7 +5,7 @@ use std::{ffi::CStr, io, os::windows::raw::HANDLE, ptr::null_mut};
 use io_trait::OperationResult;
 
 use crate::{
-    async_traits::AsyncTrait,
+    async_trait::AsyncTrait,
     windows_api::{
         self, CancelIoEx, CloseHandle, CreateFileA, Error, GetLastError, GetOverlappedResult,
         ReadFile, WriteFile, BOOL, CREATE_ALWAYS, DWORD, ERROR_SUCCESS, FILE_FLAG_OVERLAPPED,
@@ -134,4 +134,4 @@ impl AsyncTrait for Windows {
     }
 }
 
-pub type Os = Windows;
+pub type TargetFamily = Windows;

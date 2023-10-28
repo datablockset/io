@@ -96,4 +96,4 @@ impl AsyncTrait for Unix {
     }
 }
 
-pub type Os = Unix;
+pub type TargetFamily = Unix;

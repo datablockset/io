@@ -1,6 +1,6 @@
 [package]
 name = "io-impl"
-version = "0.3.2"
+version = "0.4.0"
 edition = "2021"
 description = "I/O implementations"
 authors.workspace = true
@@ -10,5 +10,5 @@ repository.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-io-trait = { path = "../io-trait", version = "0.3.0" }
+io-trait = { path = "../io-trait", version = "0.4.0" }
 libc = { workspace = true }

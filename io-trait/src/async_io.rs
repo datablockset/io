@@ -11,10 +11,12 @@ pub trait AsyncOperation {
     fn get_result(&mut self) -> OperationResult;
 }
 
-pub trait AsyncFile {
+pub trait AsyncFile: Sized {
     type Operation<'a>: AsyncOperation
     where
         Self: 'a;
+    fn create(path: &CStr) -> io::Result<Self>;
+    fn open(path: &CStr) -> io::Result<Self>;
     fn read<'a>(&'a mut self, offset: u64, buffer: &'a mut [u8])
         -> io::Result<Self::Operation<'a>>;
     fn write<'a>(&'a mut self, offset: u64, buffer: &'a [u8]) -> io::Result<Self::Operation<'a>>;

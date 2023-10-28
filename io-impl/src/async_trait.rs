@@ -1,6 +1,6 @@
 use std::{ffi::CStr, io};
 
-use io_trait::{AsyncOperation, OperationResult};
+use io_trait::{AsyncFile, AsyncOperation, OperationResult};
 
 pub trait AsyncTrait {
     type Handle: Copy;
@@ -31,9 +31,9 @@ pub trait AsyncTrait {
 //
 
 #[repr(transparent)]
-pub struct File<T: AsyncTrait>(T::Handle);
+pub struct Handle<T: AsyncTrait>(T::Handle);
 
-impl<T: AsyncTrait> Drop for File<T> {
+impl<T: AsyncTrait> Drop for Handle<T> {
     fn drop(&mut self) {
         T::close(self.0);
     }
@@ -48,27 +48,27 @@ impl<T: AsyncTrait> Default for Overlapped<T> {
     }
 }
 
-impl<T: AsyncTrait> File<T> {
+impl<T: AsyncTrait> Handle<T> {
     pub fn create(file_name: &CStr) -> io::Result<Self> {
-        T::open(file_name, true).map(File)
+        T::open(file_name, true).map(Handle)
     }
     pub fn open(file_name: &CStr) -> io::Result<Self> {
-        T::open(file_name, false).map(File)
+        T::open(file_name, false).map(Handle)
     }
-
+    // it's important that self, overlapped and the buffer has the same life time as the operation!
     pub fn read<'a>(
         &'a mut self,
         overlapped: &'a mut Overlapped<T>,
         offset: u64,
-        buffer: &'a mut [u8], // it's important that the buffer has the same life time as the overlapped!
+        buffer: &'a mut [u8],
     ) -> io::Result<Operation<'a, T>> {
         T::init_overlapped(self.0, &mut overlapped.0, offset, buffer);
         T::read(self.0, &mut overlapped.0, buffer).map(|_| Operation {
-            handle: self,
+            handle: self.0,
             overlapped,
         })
     }
-
+    // it's important that self, overlapped and the buffer has the same life time as the operation!
     pub fn write<'a>(
         &'a mut self,
         overlapped: &'a mut Overlapped<T>,
@@ -77,25 +77,57 @@ impl<T: AsyncTrait> File<T> {
     ) -> io::Result<Operation<'a, T>> {
         T::init_overlapped(self.0, &mut overlapped.0, offset, buffer);
         T::write(self.0, &mut overlapped.0, buffer).map(|_| Operation {
-            handle: self,
+            handle: self.0,
             overlapped,
         })
     }
 }
 
 pub struct Operation<'a, T: AsyncTrait> {
-    handle: &'a mut File<T>,
+    handle: T::Handle,
     overlapped: &'a mut Overlapped<T>,
 }
 
 impl<T: AsyncTrait> Drop for Operation<'_, T> {
     fn drop(&mut self) {
-        T::cancel(self.handle.0, &mut self.overlapped.0);
+        T::cancel(self.handle, &mut self.overlapped.0);
     }
 }
 
 impl<T: AsyncTrait> AsyncOperation for Operation<'_, T> {
     fn get_result(&mut self) -> OperationResult {
-        T::get_result(self.handle.0, &mut self.overlapped.0)
+        T::get_result(self.handle, &mut self.overlapped.0)
+    }
+}
+
+pub struct File<T: AsyncTrait> {
+    pub file: Handle<T>,
+    pub overlapped: Overlapped<T>,
+}
+
+impl<T: AsyncTrait> AsyncFile for File<T> {
+    type Operation<'a> = Operation<'a, T> where T: 'a;
+    fn create(path: &CStr) -> io::Result<Self> {
+        Ok(File {
+            file: Handle::create(path)?,
+            overlapped: Overlapped::default(),
+        })
+    }
+    fn open(path: &CStr) -> io::Result<Self> {
+        Ok(File {
+            file: Handle::open(path)?,
+            overlapped: Default::default(),
+        })
+    }
+    fn read<'a>(
+        &'a mut self,
+        offset: u64,
+        buffer: &'a mut [u8],
+    ) -> io::Result<Self::Operation<'a>> {
+        self.file.read(&mut self.overlapped, offset, buffer)
+    }
+
+    fn write<'a>(&'a mut self, offset: u64, buffer: &'a [u8]) -> io::Result<Self::Operation<'a>> {
+        self.file.write(&mut self.overlapped, offset, buffer)
     }
 }
