@@ -121,13 +121,12 @@ impl File {
     ) -> io::Result<Operation<'a>> {
         Unix::init_overlapped(self.0, &mut overlapped.0, offset, buffer);
         if unsafe { f(&mut overlapped.0) } == -1 {
-            Err(io::Error::last_os_error())
-        } else {
-            Ok(Operation {
-                file: self,
-                overlapped,
-            })
+            return Err(io::Error::last_os_error());
         }
+        Ok(Operation {
+            file: self,
+            overlapped,
+        })
     }
     pub fn write<'a>(
         &'a mut self,
