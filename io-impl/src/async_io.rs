@@ -53,17 +53,17 @@ impl AsyncIo for AIo {
 
 #[cfg(test)]
 mod test {
-    use std::{ffi::CString, thread::yield_now};
+    use std::{ffi::CString, fs::remove_file, thread::yield_now};
 
     use super::AIo;
     use io_trait::{AsyncFile, AsyncIo, AsyncOperation, OperationResult};
 
     #[test]
     fn test() {
+        let x: CString = CString::new("_test.txt").unwrap();
         let aio = AIo();
         //
         for _ in 0..1000 {
-            let x: CString = CString::new("_test.txt").unwrap();
             let origin = b"Hello World!";
             {
                 let mut handle = aio.create(&x).unwrap();
@@ -114,6 +114,7 @@ mod test {
                 assert_eq!(&buffer[..12], b"Hello World!");
             }
         }
+        remove_file(x.to_str().unwrap()).unwrap();
     }
 
     #[test]
@@ -168,6 +169,7 @@ mod test {
                 assert_eq!(&buffer[..len], origin.as_bytes());
             }
         }
+        remove_file(x.to_str().unwrap()).unwrap();
     }
 
     #[test]
@@ -225,5 +227,6 @@ mod test {
             }
             assert_eq!(&v, origin.as_bytes());
         }
+        remove_file(x.to_str().unwrap()).unwrap();
     }
 }
