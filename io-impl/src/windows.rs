@@ -4,12 +4,21 @@ use std::{ffi::CStr, io, os::windows::raw::HANDLE, ptr::null_mut};
 
 use io_trait::{AsyncOperation, OperationResult};
 
-use crate::windows_api::{
+use crate::{windows_api::{
     self, to_bool, CancelIoEx, CloseHandle, CreateFileA, CreationDisposition, GetLastError,
     GetOverlappedResult, ReadFile, WriteFile, ACCESS_MASK, BOOL, CREATE_ALWAYS, DWORD,
     FILE_FLAG_OVERLAPPED, GENERIC_READ, GENERIC_WRITE, INVALID_HANDLE_VALUE, LPCVOID, LPVOID,
     OPEN_ALWAYS, OVERLAPPED,
-};
+}, async_traits::FileHandle};
+
+impl FileHandle for HANDLE {
+    type Overlapped = OVERLAPPED;
+    fn close(&mut self) {
+        unsafe {
+            CloseHandle(*self);
+        }
+    }
+}
 
 pub struct File(HANDLE);
 
