@@ -7,9 +7,9 @@ use io_trait::{AsyncOperation, OperationResult};
 use crate::{
     async_traits::AsyncTrait,
     windows_api::{
-        self, CancelIoEx, CloseHandle, CreateFileA, GetLastError, GetOverlappedResult, ReadFile,
-        WriteFile, BOOL, CREATE_ALWAYS, DWORD, FILE_FLAG_OVERLAPPED, GENERIC_READ, GENERIC_WRITE,
-        LPCVOID, LPVOID, OPEN_ALWAYS, OVERLAPPED,
+        self, CancelIoEx, CloseHandle, CreateFileA, Error, GetLastError, GetOverlappedResult,
+        ReadFile, WriteFile, BOOL, CREATE_ALWAYS, DWORD, ERROR_SUCCESS, FILE_FLAG_OVERLAPPED,
+        GENERIC_READ, GENERIC_WRITE, LPCVOID, LPVOID, OPEN_ALWAYS, OVERLAPPED,
     },
 };
 
@@ -21,11 +21,16 @@ fn get_overlapped_result(handle: HANDLE, overlapped: &mut OVERLAPPED, wait: bool
     (result, size)
 }
 
-fn to_operation_result((v, size): (BOOL, DWORD)) -> OperationResult {
+fn get_last_error(v: BOOL) -> Error {
     if v.to_bool() {
-        return OperationResult::Ok(size as usize);
+        return ERROR_SUCCESS;
     }
-    match unsafe { GetLastError() } {
+    unsafe { GetLastError() }
+}
+
+fn to_operation_result((v, size): (BOOL, DWORD)) -> OperationResult {
+    match get_last_error(v) {
+        windows_api::ERROR_SUCCESS => OperationResult::Ok(size as usize),
         windows_api::ERROR_IO_PENDING | windows_api::ERROR_IO_INCOMPLETE => {
             OperationResult::Pending
         }

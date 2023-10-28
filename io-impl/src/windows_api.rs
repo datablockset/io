@@ -123,6 +123,7 @@ pub const FILE_FLAG_OVERLAPPED: FlagsAndAttributes = FlagsAndAttributes(0x400000
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
 #[repr(transparent)]
 pub struct Error(DWORD);
+pub const ERROR_SUCCESS: Error = Error(0);
 pub const ERROR_HANDLE_EOF: Error = Error(38);
 pub const ERROR_IO_INCOMPLETE: Error = Error(996);
 pub const ERROR_IO_PENDING: Error = Error(997);
