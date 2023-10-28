@@ -8,13 +8,16 @@ use libc::{
     aio_cancel, aio_error, aio_read, aio_return, aio_write, aiocb, close, open, AIO_NOTCANCELED,
 };
 
-use crate::async_traits::FileHandle;
+use crate::async_traits::AsyncTrait;
 
-impl FileHandle for i32 {
+pub struct Unix();
+
+impl AsyncTrait for Unix {
+    type Handle = i32;
     type Overlapped = aiocb;
-    fn close(&mut self) {
+    fn close(handle: Self::Handle) {
         unsafe {
-            close(*self);
+            close(handle);
         }
     }
 }

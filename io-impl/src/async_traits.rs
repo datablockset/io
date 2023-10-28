@@ -1,4 +1,5 @@
-pub trait FileHandle {
+pub trait AsyncTrait {
+    type Handle;
     type Overlapped;
-    fn close(&mut self);
+    fn close(handle: Self::Handle);
 }
