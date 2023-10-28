@@ -15,4 +15,9 @@ pub trait AsyncTrait {
         offset: u64,
         buffer: &[u8],
     );
+    fn read(
+        handle: Self::Handle,
+        overlapped: &mut Self::Overlapped,
+        buffer: &mut [u8],
+    ) -> io::Result<()>;
 }

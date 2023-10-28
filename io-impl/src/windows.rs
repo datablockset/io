@@ -46,6 +46,14 @@ fn to_operation_result((v, size): (BOOL, DWORD)) -> OperationResult {
     }
 }
 
+fn create_operation_error(result: BOOL) -> io::Result<()> {
+    let e = get_last_error(result);
+    if e == windows_api::ERROR_SUCCESS || is_pending(e) {
+        return Ok(());
+    }
+    Err(e.to_error())
+}
+
 impl AsyncTrait for Windows {
     type Handle = HANDLE;
     type Overlapped = OVERLAPPED;
@@ -90,6 +98,22 @@ impl AsyncTrait for Windows {
     ) {
         *overlapped = OVERLAPPED::new(offset);
     }
+
+    fn read(
+        handle: Self::Handle,
+        overlapped: &mut Self::Overlapped,
+        buffer: &mut [u8],
+    ) -> io::Result<()> {
+        create_operation_error(unsafe {
+            ReadFile(
+                handle,
+                buffer.as_mut_ptr() as LPVOID,
+                buffer.len() as DWORD,
+                null_mut(),
+                overlapped,
+            )
+        })
+    }
 }
 
 #[repr(transparent)]
@@ -131,16 +155,10 @@ impl File {
         buffer: &'a mut [u8], // it's important that the buffer has the same life time as the overlapped!
     ) -> io::Result<Operation<'a>> {
         Windows::init_overlapped(self.0, &mut overlapped.0, offset, buffer);
-        let result = unsafe {
-            ReadFile(
-                self.0,
-                buffer.as_mut_ptr() as LPVOID,
-                buffer.len() as DWORD,
-                null_mut(),
-                &mut overlapped.0,
-            )
-        };
-        self.create_operation(overlapped, result)
+        Windows::read(self.0, &mut overlapped.0, buffer).map(|_| Operation {
+            handle: self,
+            overlapped,
+        })
     }
 
     pub fn write<'a>(
