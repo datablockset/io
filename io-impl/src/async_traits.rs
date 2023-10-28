@@ -1,10 +1,10 @@
 use std::{ffi::CStr, io};
 
-use io_trait::{OperationResult, AsyncOperation};
+use io_trait::{AsyncOperation, OperationResult};
 
 pub trait AsyncTrait {
     type Handle: Copy;
-    type Overlapped;
+    type Overlapped: Default;
     fn close(handle: Self::Handle);
     fn cancel(handle: Self::Handle, overlapped: &mut Self::Overlapped);
     fn get_result(handle: Self::Handle, overlapped: &mut Self::Overlapped) -> OperationResult;
@@ -40,6 +40,12 @@ impl<T: AsyncTrait> Drop for File<T> {
 
 #[repr(transparent)]
 pub struct Overlapped<T: AsyncTrait>(T::Overlapped);
+
+impl<T: AsyncTrait> Default for Overlapped<T> {
+    fn default() -> Self {
+        Self(Default::default())
+    }
+}
 
 impl<T: AsyncTrait> File<T> {
     pub fn create(file_name: &CStr) -> io::Result<Self> {

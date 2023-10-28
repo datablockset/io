@@ -2,7 +2,7 @@
 #![cfg(not(tarpaulin_include))]
 use std::{ffi::CStr, io, os::windows::raw::HANDLE, ptr::null_mut};
 
-use io_trait::{AsyncOperation, OperationResult};
+use io_trait::OperationResult;
 
 use crate::{
     async_traits::AsyncTrait,
@@ -13,7 +13,7 @@ use crate::{
     },
 };
 
-struct Windows();
+pub struct Windows();
 
 fn get_overlapped_result(handle: HANDLE, overlapped: &mut OVERLAPPED, wait: bool) -> (BOOL, DWORD) {
     let mut size: DWORD = 0;
@@ -131,67 +131,4 @@ impl AsyncTrait for Windows {
     }
 }
 
-#[repr(transparent)]
-pub struct File(HANDLE);
-
-impl Drop for File {
-    fn drop(&mut self) {
-        Windows::close(self.0);
-    }
-}
-
-impl File {
-    pub fn create(file_name: &CStr) -> io::Result<Self> {
-        Windows::open(file_name, true).map(File)
-    }
-    pub fn open(file_name: &CStr) -> io::Result<Self> {
-        Windows::open(file_name, false).map(File)
-    }
-
-    pub fn read<'a>(
-        &'a mut self,
-        overlapped: &'a mut Overlapped,
-        offset: u64,
-        buffer: &'a mut [u8], // it's important that the buffer has the same life time as the overlapped!
-    ) -> io::Result<Operation<'a>> {
-        Windows::init_overlapped(self.0, &mut overlapped.0, offset, buffer);
-        Windows::read(self.0, &mut overlapped.0, buffer).map(|_| Operation {
-            handle: self,
-            overlapped,
-        })
-    }
-
-    pub fn write<'a>(
-        &'a mut self,
-        overlapped: &'a mut Overlapped,
-        offset: u64,
-        buffer: &'a [u8], // it's important that the buffer has the same life time as the overlapped!
-    ) -> io::Result<Operation<'a>> {
-        Windows::init_overlapped(self.0, &mut overlapped.0, offset, buffer);
-        Windows::write(self.0, &mut overlapped.0, buffer).map(|_| Operation {
-            handle: self,
-            overlapped,
-        })
-    }
-}
-
-#[derive(Default)]
-#[repr(transparent)]
-pub struct Overlapped(OVERLAPPED);
-
-pub struct Operation<'a> {
-    handle: &'a mut File,
-    overlapped: &'a mut Overlapped,
-}
-
-impl Drop for Operation<'_> {
-    fn drop(&mut self) {
-        Windows::cancel(self.handle.0, &mut self.overlapped.0);
-    }
-}
-
-impl AsyncOperation for Operation<'_> {
-    fn get_result(&mut self) -> OperationResult {
-        Windows::get_result(self.handle.0, &mut self.overlapped.0)
-    }
-}
+pub type Os = Windows;
