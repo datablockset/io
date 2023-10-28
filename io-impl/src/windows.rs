@@ -57,6 +57,9 @@ fn to_operation_error(result: BOOL) -> io::Result<()> {
 impl AsyncTrait for Windows {
     type Handle = HANDLE;
     type Overlapped = OVERLAPPED;
+    fn overlapped_default() -> Self::Overlapped {
+        OVERLAPPED::default()
+    }
     fn close(handle: Self::Handle) {
         unsafe { CloseHandle(handle) };
     }
