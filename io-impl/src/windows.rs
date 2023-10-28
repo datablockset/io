@@ -115,10 +115,10 @@ impl AsyncTrait for Windows {
         })
     }
     fn write(
-            handle: Self::Handle,
-            overlapped: &mut Self::Overlapped,
-            buffer: &[u8],
-        ) -> io::Result<()> {
+        handle: Self::Handle,
+        overlapped: &mut Self::Overlapped,
+        buffer: &[u8],
+    ) -> io::Result<()> {
         to_operation_error(unsafe {
             WriteFile(
                 handle,
@@ -147,23 +147,6 @@ impl File {
     pub fn open(file_name: &CStr) -> io::Result<Self> {
         Windows::open(file_name, false).map(File)
     }
-
-    /*
-    fn create_operation<'a>(
-        &'a mut self,
-        overlapped: &'a mut Overlapped,
-        result: BOOL,
-    ) -> io::Result<Operation<'a>> {
-        let e = get_last_error(result);
-        if e == windows_api::ERROR_SUCCESS || is_pending(e) {
-            return Ok(Operation {
-                handle: self,
-                overlapped,
-            });
-        }
-        Err(e.to_error())
-    }
-    */
 
     pub fn read<'a>(
         &'a mut self,
