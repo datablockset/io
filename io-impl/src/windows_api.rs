@@ -86,6 +86,22 @@ impl Default for OVERLAPPED {
     }
 }
 
+impl Overlapped {
+    fn new(offset: u64) -> Self {
+        Self(OVERLAPPED {
+            Internal: 0,
+            InternalHigh: 0,
+            OffsetOrPointer: OVERLAPPED_OffsetOrPointer {
+                Offset: OVERLAPPED_Offset {
+                    Offset: offset as DWORD,
+                    OffsetHigh: (offset >> 32) as DWORD,
+                },
+            },
+            hEvent: null_mut(),
+        })
+    }
+}
+
 type LPOVERLAPPED = *mut OVERLAPPED;
 
 // https://learn.microsoft.com/en-us/windows/win32/secauthz/access-mask

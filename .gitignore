@@ -14,3 +14,4 @@ Cargo.lock
 *.pdb
 tarpaulin-report.html
 _*
+.vscode/

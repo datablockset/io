@@ -80,20 +80,13 @@ impl File {
         }
     }
 
-    fn set_offset(overlapped: &mut Overlapped, offset: u64) {
-        let o = unsafe { &mut overlapped.0.OffsetOrPointer.Offset };
-        o.Offset = offset as DWORD;
-        o.OffsetHigh = (offset >> 32) as DWORD;
-    }
-
     pub fn read<'a>(
         &'a mut self,
         overlapped: &'a mut Overlapped,
         offset: u64,
         buffer: &'a mut [u8], // it's important that the buffer has the same life time as the overlapped!
     ) -> io::Result<Operation<'a>> {
-        *overlapped = Default::default();
-        Self::set_offset(overlapped, offset);
+        *overlapped = Overlapped::new(offset);
         let result = unsafe {
             ReadFile(
                 self.0,
@@ -112,8 +105,7 @@ impl File {
         offset: u64,
         buffer: &'a [u8], // it's important that the buffer has the same life time as the overlapped!
     ) -> io::Result<Operation<'a>> {
-        *overlapped = Default::default();
-        Self::set_offset(overlapped, offset);
+        *overlapped = Overlapped::new(offset);
         let result = unsafe {
             WriteFile(
                 self.0,
