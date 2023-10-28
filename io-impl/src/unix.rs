@@ -6,6 +6,7 @@ use std::{ffi::CStr, io, mem::zeroed, thread::yield_now};
 use io_trait::{AsyncOperation, OperationResult};
 use libc::{
     aio_cancel, aio_error, aio_read, aio_return, aio_write, aiocb, close, open, AIO_NOTCANCELED,
+    ECANCELED, EINPROGRESS,
 };
 
 use crate::async_traits::AsyncTrait;
@@ -18,6 +19,17 @@ impl AsyncTrait for Unix {
     fn close(handle: Self::Handle) {
         unsafe {
             close(handle);
+        }
+    }
+    fn cancel(handle: Self::Handle, overlapped: &mut Self::Overlapped) {
+        if unsafe { aio_cancel(handle, overlapped) } != AIO_NOTCANCELED {
+            return
+        }
+        loop {
+            yield_now();
+            if unsafe { aio_error(overlapped) } != EINPROGRESS {
+                return;
+            }
         }
     }
 }
@@ -59,12 +71,8 @@ impl Operation<'_> {
     fn get_result(&mut self) -> OperationResult {
         match unsafe { aio_error(&self.overlapped.0) } {
             0 => OperationResult::Ok(unsafe { aio_return(&mut self.overlapped.0) } as usize),
-            e => {
-                if e == libc::EINPROGRESS {
-                    return OperationResult::Pending;
-                }
-                OperationResult::Err(io::Error::from_raw_os_error(e))
-            }
+            libc::EINPROGRESS => OperationResult::Pending,
+            e => OperationResult::Err(io::Error::from_raw_os_error(e)),
         }
     }
 }
