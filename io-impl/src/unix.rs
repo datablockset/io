@@ -84,6 +84,14 @@ impl AsyncTrait for Unix {
     ) -> io::Result<()> {
         to_operation_error(unsafe { aio_read(overlapped) })
     }
+
+    fn write(
+        _handle: Self::Handle,
+        overlapped: &mut Self::Overlapped,
+        _buffer: &[u8],
+    ) -> io::Result<()> {
+        to_operation_error(unsafe { aio_write(overlapped) })
+    }
 }
 
 pub struct File(i32);
@@ -126,29 +134,17 @@ impl File {
     pub fn open(path: &CStr) -> io::Result<Self> {
         Unix::open(path, false).map(Self)
     }
-    fn create_operation<'a>(
-        &'a mut self,
-        overlapped: &'a mut Overlapped,
-        offset: u64,
-        buffer: &'a [u8],
-        f: unsafe extern "C" fn(*mut aiocb) -> i32,
-    ) -> io::Result<Operation<'a>> {
-        Unix::init_overlapped(self.0, &mut overlapped.0, offset, buffer);
-        if unsafe { f(&mut overlapped.0) } == -1 {
-            return Err(io::Error::last_os_error());
-        }
-        Ok(Operation {
-            file: self,
-            overlapped,
-        })
-    }
     pub fn write<'a>(
         &'a mut self,
         overlapped: &'a mut Overlapped,
         offset: u64,
         buffer: &'a [u8],
     ) -> io::Result<Operation<'a>> {
-        self.create_operation(overlapped, offset, buffer, aio_write)
+        Unix::init_overlapped(self.0, &mut overlapped.0, offset, buffer);
+        Unix::write(self.0, &mut overlapped.0, buffer).map(|_| Operation {
+            file: self,
+            overlapped,
+        })
     }
     pub fn read<'a>(
         &'a mut self,
