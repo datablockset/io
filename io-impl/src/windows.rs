@@ -70,6 +70,14 @@ impl AsyncTrait for Windows {
             h => Ok(h),
         }
     }
+    fn init_overlapped(
+        _handle: Self::Handle,
+        overlapped: &mut Self::Overlapped,
+        offset: u64,
+        _buffer: &[u8],
+    ) {
+        *overlapped = OVERLAPPED::new(offset);
+    }
 }
 
 #[repr(transparent)]
@@ -95,13 +103,12 @@ impl File {
         result: BOOL,
     ) -> io::Result<Operation<'a>> {
         if let OperationResult::Err(e) = to_operation_result((result, 0)) {
-            Err(e)
-        } else {
-            Ok(Operation {
-                handle: self,
-                overlapped,
-            })
+            return Err(e);
         }
+        Ok(Operation {
+            handle: self,
+            overlapped,
+        })
     }
 
     pub fn read<'a>(
@@ -110,7 +117,7 @@ impl File {
         offset: u64,
         buffer: &'a mut [u8], // it's important that the buffer has the same life time as the overlapped!
     ) -> io::Result<Operation<'a>> {
-        overlapped.0 = OVERLAPPED::new(offset);
+        Windows::init_overlapped(self.0, &mut overlapped.0, offset, buffer);
         let result = unsafe {
             ReadFile(
                 self.0,
@@ -129,7 +136,7 @@ impl File {
         offset: u64,
         buffer: &'a [u8], // it's important that the buffer has the same life time as the overlapped!
     ) -> io::Result<Operation<'a>> {
-        overlapped.0 = OVERLAPPED::new(offset);
+        Windows::init_overlapped(self.0, &mut overlapped.0, offset, buffer);
         let result = unsafe {
             WriteFile(
                 self.0,
