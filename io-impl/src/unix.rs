@@ -8,6 +8,17 @@ use libc::{
     aio_cancel, aio_error, aio_read, aio_return, aio_write, aiocb, close, open, AIO_NOTCANCELED,
 };
 
+use crate::async_traits::FileHandle;
+
+impl FileHandle for i32 {
+    type Overlapped = aiocb;
+    fn close(&mut self) {
+        unsafe {
+            close(*self);
+        }
+    }
+}
+
 pub struct File(i32);
 
 impl Drop for File {
