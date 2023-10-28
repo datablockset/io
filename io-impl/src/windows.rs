@@ -7,10 +7,9 @@ use io_trait::{AsyncOperation, OperationResult};
 use crate::{
     async_traits::AsyncTrait,
     windows_api::{
-        self, CancelIoEx, CloseHandle, CreateFileA, CreationDisposition, GetLastError,
-        GetOverlappedResult, ReadFile, WriteFile, ACCESS_MASK, BOOL, CREATE_ALWAYS, DWORD,
-        FILE_FLAG_OVERLAPPED, GENERIC_READ, GENERIC_WRITE, INVALID_HANDLE_VALUE, LPCVOID, LPVOID,
-        OPEN_ALWAYS, OVERLAPPED,
+        self, CancelIoEx, CloseHandle, CreateFileA, GetLastError, GetOverlappedResult, ReadFile,
+        WriteFile, BOOL, CREATE_ALWAYS, DWORD, FILE_FLAG_OVERLAPPED, GENERIC_READ, GENERIC_WRITE,
+        LPCVOID, LPVOID, OPEN_ALWAYS, OVERLAPPED,
     },
 };
 
@@ -51,21 +50,25 @@ impl AsyncTrait for Windows {
         to_operation_result(get_overlapped_result(handle, overlapped, false))
     }
     fn open(path: &CStr, create: bool) -> io::Result<Self::Handle> {
-        let result = unsafe {
+        let (da, cp) = if create {
+            (GENERIC_WRITE, CREATE_ALWAYS)
+        } else {
+            (GENERIC_READ, OPEN_ALWAYS)
+        };
+        match unsafe {
             CreateFileA(
                 path.as_ptr(),
-                if create { GENERIC_WRITE } else { GENERIC_READ },
+                da,
                 0,
                 null_mut(),
-                if create { CREATE_ALWAYS } else { OPEN_ALWAYS },
+                cp,
                 FILE_FLAG_OVERLAPPED,
                 null_mut(),
             )
-        };
-        if result == INVALID_HANDLE_VALUE {
-            return Err(io::Error::last_os_error());
+        } {
+            windows_api::INVALID_HANDLE_VALUE => Err(io::Error::last_os_error()),
+            h => Ok(h),
         }
-        Ok(result)
     }
 }
 
