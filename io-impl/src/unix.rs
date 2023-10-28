@@ -5,11 +5,20 @@ use std::{ffi::CStr, io, mem::zeroed, thread::yield_now};
 
 use io_trait::{AsyncOperation, OperationResult};
 use libc::{
-    aio_cancel, aio_error, aio_read, aio_return, aio_write, aiocb, close, open, AIO_NOTCANCELED,
-    EINPROGRESS,
+    aio_cancel, aio_read, aio_return, aio_write, aiocb, close, open, AIO_NOTCANCELED,
+    c_int,
 };
 
 use crate::async_traits::AsyncTrait;
+
+#[derive(Debug, PartialEq, Eq)]
+#[repr(transparent)]
+struct AioError(c_int);
+const EINPROGRESS: AioError = AioError(libc::EINPROGRESS);
+
+fn aio_error(overlapped: &aiocb) -> AioError {
+    AioError(unsafe { libc::aio_error(overlapped) })
+}
 
 pub struct Unix();
 
@@ -27,9 +36,16 @@ impl AsyncTrait for Unix {
         }
         loop {
             yield_now();
-            if unsafe { aio_error(overlapped) } != EINPROGRESS {
+            if aio_error(overlapped) != EINPROGRESS {
                 return;
             }
+        }
+    }
+    fn get_result(_handle: Self::Handle, overlapped: &mut Self::Overlapped) -> OperationResult {
+        match aio_error(overlapped) {
+            AioError(0) => OperationResult::Ok(unsafe { aio_return(overlapped) } as usize),
+            EINPROGRESS => OperationResult::Pending,
+            e => OperationResult::Err(io::Error::from_raw_os_error(e.0)),
         }
     }
 }
@@ -63,11 +79,7 @@ impl Drop for Operation<'_> {
 
 impl Operation<'_> {
     fn get_result(&mut self) -> OperationResult {
-        match unsafe { aio_error(&self.overlapped.0) } {
-            0 => OperationResult::Ok(unsafe { aio_return(&mut self.overlapped.0) } as usize),
-            libc::EINPROGRESS => OperationResult::Pending,
-            e => OperationResult::Err(io::Error::from_raw_os_error(e)),
-        }
+        Unix::get_result(self.file.0, &mut self.overlapped.0)
     }
 }
 
