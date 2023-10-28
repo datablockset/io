@@ -35,9 +35,7 @@ impl AsyncTrait for Unix {
         unsafe { zeroed() }
     }
     fn close(handle: Self::Handle) {
-        unsafe {
-            close(handle);
-        }
+        unsafe { close(handle) }
     }
     fn cancel(handle: Self::Handle, overlapped: &mut Self::Overlapped) {
         if unsafe { aio_cancel(handle, overlapped) } != AIO_NOTCANCELED {
