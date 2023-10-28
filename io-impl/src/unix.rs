@@ -58,6 +58,18 @@ impl AsyncTrait for Unix {
             fd => Ok(fd),
         }
     }
+    fn init_overlapped(
+        handle: Self::Handle,
+        overlapped: &mut Self::Overlapped,
+        offset: u64,
+        buffer: &[u8],
+    ) {
+        *overlapped = unsafe { zeroed() };
+        overlapped.aio_fildes = handle;
+        overlapped.aio_buf = buffer.as_ptr() as *mut _;
+        overlapped.aio_nbytes = buffer.len();
+        overlapped.aio_offset = offset as i64;
+    }
 }
 
 pub struct File(i32);
@@ -107,11 +119,7 @@ impl File {
         buffer: &'a [u8],
         f: unsafe extern "C" fn(*mut aiocb) -> i32,
     ) -> io::Result<Operation<'a>> {
-        *overlapped = Default::default();
-        overlapped.0.aio_fildes = self.0;
-        overlapped.0.aio_buf = buffer.as_ptr() as *mut _;
-        overlapped.0.aio_nbytes = buffer.len();
-        overlapped.0.aio_offset = offset as i64;
+        Unix::init_overlapped(self.0, &mut overlapped.0, offset, buffer);
         if unsafe { f(&mut overlapped.0) } == -1 {
             Err(io::Error::last_os_error())
         } else {
