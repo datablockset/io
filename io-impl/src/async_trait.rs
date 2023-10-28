@@ -55,7 +55,7 @@ impl<T: AsyncTrait> Handle<T> {
     pub fn open(file_name: &CStr) -> io::Result<Self> {
         T::open(file_name, false).map(Handle)
     }
-    // it's important that self, overlapped and the buffer has the same life time as the operation!
+    /// Note: it's important that self, overlapped and the buffer has the same life time as the operation!
     pub fn read<'a>(
         &'a mut self,
         overlapped: &'a mut Overlapped<T>,
@@ -68,12 +68,12 @@ impl<T: AsyncTrait> Handle<T> {
             overlapped,
         })
     }
-    // it's important that self, overlapped and the buffer has the same life time as the operation!
+    /// Note: it's important that self, overlapped and the buffer has the same life time as the operation!
     pub fn write<'a>(
         &'a mut self,
         overlapped: &'a mut Overlapped<T>,
         offset: u64,
-        buffer: &'a [u8], // it's important that the buffer has the same life time as the overlapped!
+        buffer: &'a [u8],
     ) -> io::Result<Operation<'a, T>> {
         T::init_overlapped(self.0, &mut overlapped.0, offset, buffer);
         T::write(self.0, &mut overlapped.0, buffer).map(|_| Operation {

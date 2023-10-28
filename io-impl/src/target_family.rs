@@ -41,8 +41,6 @@ mod test {
                         }
                     }
                 }
-                // let result = operation.get_result(true).unwrap();
-                // assert_eq!(result, 12);
             }
             {
                 let mut handle = File::open(&x).unwrap();
@@ -65,8 +63,6 @@ mod test {
                             }
                         }
                     }
-                    // let result = operation.get_result(true).unwrap();
-                    // assert_eq!(result, 12);
                 }
                 assert_eq!(&buffer[..12], b"Hello World!");
             }
