@@ -6,7 +6,7 @@ use std::{ffi::CStr, io, mem::zeroed, thread::yield_now};
 use io_trait::{AsyncOperation, OperationResult};
 use libc::{
     aio_cancel, aio_error, aio_read, aio_return, aio_write, aiocb, close, open, AIO_NOTCANCELED,
-    ECANCELED, EINPROGRESS,
+    EINPROGRESS,
 };
 
 use crate::async_traits::AsyncTrait;
