@@ -50,6 +50,23 @@ impl AsyncTrait for Windows {
     fn get_result(handle: Self::Handle, overlapped: &mut Self::Overlapped) -> OperationResult {
         to_operation_result(get_overlapped_result(handle, overlapped, false))
     }
+    fn open(path: &CStr, create: bool) -> io::Result<Self::Handle> {
+        let result = unsafe {
+            CreateFileA(
+                path.as_ptr(),
+                if create { GENERIC_WRITE } else { GENERIC_READ },
+                0,
+                null_mut(),
+                if create { CREATE_ALWAYS } else { OPEN_ALWAYS },
+                FILE_FLAG_OVERLAPPED,
+                null_mut(),
+            )
+        };
+        if result == INVALID_HANDLE_VALUE {
+            return Err(io::Error::last_os_error());
+        }
+        Ok(result)
+    }
 }
 
 #[repr(transparent)]
@@ -62,33 +79,11 @@ impl Drop for File {
 }
 
 impl File {
-    fn create_file(
-        file_name: &CStr,
-        desired_access: ACCESS_MASK,
-        creation_disposition: CreationDisposition,
-    ) -> io::Result<Self> {
-        let result = unsafe {
-            CreateFileA(
-                file_name.as_ptr(),
-                desired_access,
-                0,
-                null_mut(),
-                creation_disposition,
-                FILE_FLAG_OVERLAPPED,
-                null_mut(),
-            )
-        };
-        if result == INVALID_HANDLE_VALUE {
-            Err(io::Error::last_os_error())
-        } else {
-            Ok(Self(result))
-        }
-    }
     pub fn create(file_name: &CStr) -> io::Result<Self> {
-        Self::create_file(file_name, GENERIC_WRITE, CREATE_ALWAYS)
+        Windows::open(file_name, true).map(File)
     }
     pub fn open(file_name: &CStr) -> io::Result<Self> {
-        Self::create_file(file_name, GENERIC_READ, OPEN_ALWAYS)
+        Windows::open(file_name, false).map(File)
     }
 
     fn create_operation<'a>(
