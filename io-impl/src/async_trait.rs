@@ -55,7 +55,7 @@ impl<T: AsyncTrait> Handle<T> {
     pub fn open(file_name: &CStr) -> io::Result<Self> {
         T::open(file_name, false).map(Handle)
     }
-    /// Note: it's important that self, overlapped and the buffer has the same life time as the operation!
+    /// Note: it's important that self, overlapped and the buffer have the same life time as the returned operation!
     pub fn read<'a>(
         &'a mut self,
         overlapped: &'a mut Overlapped<T>,
@@ -68,7 +68,7 @@ impl<T: AsyncTrait> Handle<T> {
             overlapped,
         })
     }
-    /// Note: it's important that self, overlapped and the buffer has the same life time as the operation!
+    /// Note: it's important that self, overlapped and the buffer have the same life time as the returned operation!
     pub fn write<'a>(
         &'a mut self,
         overlapped: &'a mut Overlapped<T>,
@@ -80,23 +80,6 @@ impl<T: AsyncTrait> Handle<T> {
             handle: self.0,
             overlapped,
         })
-    }
-}
-
-pub struct Operation<'a, T: AsyncTrait> {
-    handle: T::Handle,
-    overlapped: &'a mut Overlapped<T>,
-}
-
-impl<T: AsyncTrait> Drop for Operation<'_, T> {
-    fn drop(&mut self) {
-        T::cancel(self.handle, &mut self.overlapped.0);
-    }
-}
-
-impl<T: AsyncTrait> AsyncOperation for Operation<'_, T> {
-    fn get_result(&mut self) -> OperationResult {
-        T::get_result(self.handle, &mut self.overlapped.0)
     }
 }
 
@@ -129,5 +112,22 @@ impl<T: AsyncTrait> AsyncFile for File<T> {
 
     fn write<'a>(&'a mut self, offset: u64, buffer: &'a [u8]) -> io::Result<Self::Operation<'a>> {
         self.handle.write(&mut self.overlapped, offset, buffer)
+    }
+}
+
+pub struct Operation<'a, T: AsyncTrait> {
+    handle: T::Handle,
+    overlapped: &'a mut Overlapped<T>,
+}
+
+impl<T: AsyncTrait> Drop for Operation<'_, T> {
+    fn drop(&mut self) {
+        T::cancel(self.handle, &mut self.overlapped.0);
+    }
+}
+
+impl<T: AsyncTrait> AsyncOperation for Operation<'_, T> {
+    fn get_result(&mut self) -> OperationResult {
+        T::get_result(self.handle, &mut self.overlapped.0)
     }
 }
