@@ -101,7 +101,7 @@ impl<T: AsyncTrait> AsyncOperation for Operation<'_, T> {
 }
 
 pub struct File<T: AsyncTrait> {
-    pub file: Handle<T>,
+    pub handle: Handle<T>,
     pub overlapped: Overlapped<T>,
 }
 
@@ -109,13 +109,13 @@ impl<T: AsyncTrait> AsyncFile for File<T> {
     type Operation<'a> = Operation<'a, T> where T: 'a;
     fn create(path: &CStr) -> io::Result<Self> {
         Ok(File {
-            file: Handle::create(path)?,
+            handle: Handle::create(path)?,
             overlapped: Overlapped::default(),
         })
     }
     fn open(path: &CStr) -> io::Result<Self> {
         Ok(File {
-            file: Handle::open(path)?,
+            handle: Handle::open(path)?,
             overlapped: Default::default(),
         })
     }
@@ -124,10 +124,10 @@ impl<T: AsyncTrait> AsyncFile for File<T> {
         offset: u64,
         buffer: &'a mut [u8],
     ) -> io::Result<Self::Operation<'a>> {
-        self.file.read(&mut self.overlapped, offset, buffer)
+        self.handle.read(&mut self.overlapped, offset, buffer)
     }
 
     fn write<'a>(&'a mut self, offset: u64, buffer: &'a [u8]) -> io::Result<Self::Operation<'a>> {
-        self.file.write(&mut self.overlapped, offset, buffer)
+        self.handle.write(&mut self.overlapped, offset, buffer)
     }
 }
