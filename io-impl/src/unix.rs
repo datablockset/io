@@ -23,7 +23,7 @@ impl AsyncTrait for Unix {
     }
     fn cancel(handle: Self::Handle, overlapped: &mut Self::Overlapped) {
         if unsafe { aio_cancel(handle, overlapped) } != AIO_NOTCANCELED {
-            return
+            return;
         }
         loop {
             yield_now();
@@ -38,9 +38,7 @@ pub struct File(i32);
 
 impl Drop for File {
     fn drop(&mut self) {
-        unsafe {
-            close(self.0);
-        }
+        Unix::close(self.0);
     }
 }
 
@@ -59,11 +57,7 @@ pub struct Operation<'a> {
 
 impl Drop for Operation<'_> {
     fn drop(&mut self) {
-        let mut e = unsafe { aio_cancel(self.file.0, &mut self.overlapped.0) };
-        while e == AIO_NOTCANCELED {
-            yield_now();
-            e = unsafe { aio_error(&self.overlapped.0) };
-        }
+        Unix::cancel(self.file.0, &mut self.overlapped.0)
     }
 }
 
