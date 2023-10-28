@@ -21,11 +21,15 @@ fn aio_error(overlapped: &aiocb) -> AioError {
 
 pub struct Unix();
 
-fn to_operation_error(result: c_int) -> io::Result<()> {
+fn to_result(result: c_int) -> io::Result<c_int> {
     if result == -1 {
         return Err(io::Error::last_os_error());
     }
-    Ok(())
+    Ok(result)
+}
+
+fn to_operation_result(result: c_int) -> io::Result<()> {
+    to_result(result).map(|_| ())
 }
 
 impl AsyncTrait for Unix {
@@ -35,7 +39,7 @@ impl AsyncTrait for Unix {
         unsafe { zeroed() }
     }
     fn close(handle: Self::Handle) {
-        unsafe { close(handle) }
+        unsafe { close(handle) };
     }
     fn cancel(handle: Self::Handle, overlapped: &mut Self::Overlapped) {
         if unsafe { aio_cancel(handle, overlapped) } != AIO_NOTCANCELED {
@@ -83,7 +87,7 @@ impl AsyncTrait for Unix {
         overlapped: &mut Self::Overlapped,
         _buffer: &mut [u8],
     ) -> io::Result<()> {
-        to_operation_error(unsafe { aio_read(overlapped) })
+        to_operation_result(unsafe { aio_read(overlapped) })
     }
 
     fn write(
@@ -91,7 +95,7 @@ impl AsyncTrait for Unix {
         overlapped: &mut Self::Overlapped,
         _buffer: &[u8],
     ) -> io::Result<()> {
-        to_operation_error(unsafe { aio_write(overlapped) })
+        to_operation_result(unsafe { aio_write(overlapped) })
     }
 }
 
