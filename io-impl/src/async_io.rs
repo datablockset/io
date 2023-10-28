@@ -2,6 +2,8 @@ use std::{ffi::CStr, io};
 
 use io_trait::{AsyncFile, AsyncIo};
 
+use crate::async_traits::{File, Operation, Overlapped};
+
 #[cfg(target_family = "windows")]
 use crate::windows::*;
 
@@ -9,12 +11,12 @@ use crate::windows::*;
 use crate::unix::*;
 
 struct AFile {
-    file: File,
-    overlapped: Overlapped,
+    file: File<Os>,
+    overlapped: Overlapped<Os>,
 }
 
 impl AsyncFile for AFile {
-    type Operation<'a> = Operation<'a>;
+    type Operation<'a> = Operation<'a, Os>;
 
     fn read<'a>(
         &'a mut self,
@@ -37,7 +39,7 @@ impl AsyncIo for AIo {
     fn create(&self, path: &CStr) -> io::Result<Self::File> {
         Ok(AFile {
             file: File::create(path)?,
-            overlapped: Default::default(),
+            overlapped: Overlapped::default(),
         })
     }
 

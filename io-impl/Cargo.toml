@@ -1,6 +1,6 @@
 [package]
 name = "io-impl"
-version = "0.3.0"
+version = "0.3.1"
 edition = "2021"
 description = "I/O implementations"
 authors.workspace = true

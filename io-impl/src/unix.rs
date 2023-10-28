@@ -3,114 +3,97 @@
 
 use std::{ffi::CStr, io, mem::zeroed, thread::yield_now};
 
-use io_trait::{AsyncOperation, OperationResult};
+use io_trait::OperationResult;
 use libc::{
-    aio_cancel, aio_error, aio_read, aio_return, aio_write, aiocb, close, open, AIO_NOTCANCELED,
+    aio_cancel, aio_read, aio_return, aio_write, aiocb, c_int, close, open, AIO_NOTCANCELED,
 };
 
-pub struct File(i32);
+use crate::async_traits::AsyncTrait;
 
-impl Drop for File {
-    fn drop(&mut self) {
-        unsafe {
-            close(self.0);
+#[derive(Debug, PartialEq, Eq)]
+#[repr(transparent)]
+struct AioError(c_int);
+const EINPROGRESS: AioError = AioError(libc::EINPROGRESS);
+
+fn aio_error(overlapped: &aiocb) -> AioError {
+    AioError(unsafe { libc::aio_error(overlapped) })
+}
+
+pub struct Unix();
+
+fn to_result(result: c_int) -> io::Result<c_int> {
+    if result == -1 {
+        return Err(io::Error::last_os_error());
+    }
+    Ok(result)
+}
+
+fn to_operation_result(result: c_int) -> io::Result<()> {
+    to_result(result).map(|_| ())
+}
+
+impl AsyncTrait for Unix {
+    type Handle = i32;
+    type Overlapped = aiocb;
+    fn overlapped_default() -> Self::Overlapped {
+        unsafe { zeroed() }
+    }
+    fn close(handle: Self::Handle) {
+        unsafe { close(handle) };
+    }
+    fn cancel(handle: Self::Handle, overlapped: &mut Self::Overlapped) {
+        if unsafe { aio_cancel(handle, overlapped) } != AIO_NOTCANCELED {
+            return;
         }
-    }
-}
-
-pub struct Overlapped(aiocb);
-
-impl Default for Overlapped {
-    fn default() -> Self {
-        Self(unsafe { zeroed() })
-    }
-}
-
-pub struct Operation<'a> {
-    file: &'a mut File,
-    overlapped: &'a mut Overlapped,
-}
-
-impl Drop for Operation<'_> {
-    fn drop(&mut self) {
-        let mut e = unsafe { aio_cancel(self.file.0, &mut self.overlapped.0) };
-        while e == AIO_NOTCANCELED {
+        loop {
             yield_now();
-            e = unsafe { aio_error(&self.overlapped.0) };
-        }
-    }
-}
-
-impl Operation<'_> {
-    fn get_result(&mut self) -> OperationResult {
-        match unsafe { aio_error(&self.overlapped.0) } {
-            0 => OperationResult::Ok(unsafe { aio_return(&mut self.overlapped.0) } as usize),
-            e => {
-                if e == libc::EINPROGRESS {
-                    return OperationResult::Pending;
-                }
-                OperationResult::Err(io::Error::from_raw_os_error(e))
+            if aio_error(overlapped) != EINPROGRESS {
+                return;
             }
         }
     }
-}
+    fn get_result(_handle: Self::Handle, overlapped: &mut Self::Overlapped) -> OperationResult {
+        match aio_error(overlapped) {
+            AioError(0) => OperationResult::Ok(unsafe { aio_return(overlapped) } as usize),
+            EINPROGRESS => OperationResult::Pending,
+            e => OperationResult::Err(io::Error::from_raw_os_error(e.0)),
+        }
+    }
+    fn open(path: &CStr, create: bool) -> io::Result<Self::Handle> {
+        let oflag = if create {
+            libc::O_WRONLY | libc::O_CREAT | libc::O_TRUNC
+        } else {
+            libc::O_RDONLY
+        };
+        to_result(unsafe { open(path.as_ptr(), oflag, 0o644) })
+    }
+    fn init_overlapped(
+        handle: Self::Handle,
+        overlapped: &mut Self::Overlapped,
+        offset: u64,
+        buffer: &[u8],
+    ) {
+        *overlapped = unsafe { zeroed() };
+        overlapped.aio_fildes = handle;
+        overlapped.aio_buf = buffer.as_ptr() as *mut _;
+        overlapped.aio_nbytes = buffer.len();
+        overlapped.aio_offset = offset as i64;
+    }
+    fn read(
+        _handle: Self::Handle,
+        overlapped: &mut Self::Overlapped,
+        _buffer: &mut [u8],
+    ) -> io::Result<()> {
+        to_operation_result(unsafe { aio_read(overlapped) })
+    }
 
-impl File {
-    fn internal_open(path: &CStr, oflag: i32) -> io::Result<Self> {
-        let fd = unsafe { open(path.as_ptr(), oflag, 0o644) };
-        if fd == -1 {
-            Err(io::Error::last_os_error())
-        } else {
-            Ok(Self(fd))
-        }
-    }
-    pub fn create(path: &CStr) -> io::Result<Self> {
-        File::internal_open(path, libc::O_WRONLY | libc::O_CREAT | libc::O_TRUNC)
-    }
-    pub fn open(path: &CStr) -> io::Result<Self> {
-        File::internal_open(path, libc::O_RDONLY)
-    }
-    fn create_operation<'a>(
-        &'a mut self,
-        overlapped: &'a mut Overlapped,
-        offset: u64,
-        buffer: &'a [u8],
-        f: unsafe extern "C" fn(*mut aiocb) -> i32,
-    ) -> io::Result<Operation<'a>> {
-        *overlapped = Default::default();
-        overlapped.0.aio_fildes = self.0;
-        overlapped.0.aio_buf = buffer.as_ptr() as *mut _;
-        overlapped.0.aio_nbytes = buffer.len();
-        overlapped.0.aio_offset = offset as i64;
-        if unsafe { f(&mut overlapped.0) } == -1 {
-            Err(io::Error::last_os_error())
-        } else {
-            Ok(Operation {
-                file: self,
-                overlapped,
-            })
-        }
-    }
-    pub fn write<'a>(
-        &'a mut self,
-        overlapped: &'a mut Overlapped,
-        offset: u64,
-        buffer: &'a [u8],
-    ) -> io::Result<Operation<'a>> {
-        self.create_operation(overlapped, offset, buffer, aio_write)
-    }
-    pub fn read<'a>(
-        &'a mut self,
-        overlapped: &'a mut Overlapped,
-        offset: u64,
-        buffer: &'a mut [u8],
-    ) -> io::Result<Operation<'a>> {
-        self.create_operation(overlapped, offset, buffer, aio_read)
+    fn write(
+        _handle: Self::Handle,
+        overlapped: &mut Self::Overlapped,
+        _buffer: &[u8],
+    ) -> io::Result<()> {
+        to_operation_result(unsafe { aio_write(overlapped) })
     }
 }
 
-impl AsyncOperation for Operation<'_> {
-    fn get_result(&mut self) -> OperationResult {
-        self.get_result()
-    }
-}
+pub type Os = Unix;

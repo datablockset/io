@@ -2,165 +2,136 @@
 #![cfg(not(tarpaulin_include))]
 use std::{ffi::CStr, io, os::windows::raw::HANDLE, ptr::null_mut};
 
-use io_trait::{AsyncOperation, OperationResult};
+use io_trait::OperationResult;
 
-use crate::windows_api::{
-    self, to_bool, CancelIoEx, CloseHandle, CreateFileA, CreationDisposition, GetLastError,
-    GetOverlappedResult, ReadFile, WriteFile, ACCESS_MASK, BOOL, CREATE_ALWAYS, DWORD,
-    FILE_FLAG_OVERLAPPED, GENERIC_READ, GENERIC_WRITE, INVALID_HANDLE_VALUE, LPCVOID, LPVOID,
-    OPEN_ALWAYS, OVERLAPPED,
+use crate::{
+    async_traits::AsyncTrait,
+    windows_api::{
+        self, CancelIoEx, CloseHandle, CreateFileA, Error, GetLastError, GetOverlappedResult,
+        ReadFile, WriteFile, BOOL, CREATE_ALWAYS, DWORD, ERROR_SUCCESS, FILE_FLAG_OVERLAPPED,
+        GENERIC_READ, GENERIC_WRITE, LPCVOID, LPVOID, OPEN_ALWAYS, OVERLAPPED,
+    },
 };
 
-pub struct File(HANDLE);
+pub struct Windows();
 
-impl Drop for File {
-    fn drop(&mut self) {
-        unsafe {
-            CloseHandle(self.0);
-        }
-    }
+fn get_overlapped_result(handle: HANDLE, overlapped: &mut OVERLAPPED, wait: bool) -> (BOOL, DWORD) {
+    let mut size: DWORD = 0;
+    let result = unsafe { GetOverlappedResult(handle, overlapped, &mut size, wait.into()) };
+    (result, size)
 }
 
-fn to_operation_result(v: BOOL, result: DWORD) -> OperationResult {
-    if to_bool(v) {
-        OperationResult::Ok(result as usize)
-    } else {
-        match unsafe { GetLastError() } {
-            windows_api::ERROR_IO_PENDING | windows_api::ERROR_IO_INCOMPLETE => {
+fn get_last_error(v: BOOL) -> Error {
+    if v.to_bool() {
+        return ERROR_SUCCESS;
+    }
+    unsafe { GetLastError() }
+}
+
+fn is_pending(e: Error) -> bool {
+    e == windows_api::ERROR_IO_PENDING || e == windows_api::ERROR_IO_INCOMPLETE
+}
+
+fn to_operation_result((v, size): (BOOL, DWORD)) -> OperationResult {
+    match get_last_error(v) {
+        windows_api::ERROR_SUCCESS => OperationResult::Ok(size as usize),
+        windows_api::ERROR_HANDLE_EOF => OperationResult::Ok(0),
+        e => {
+            if is_pending(e) {
                 OperationResult::Pending
+            } else {
+                OperationResult::Err(e.to_error())
             }
-            windows_api::ERROR_HANDLE_EOF => OperationResult::Ok(0),
-            e => OperationResult::Err(e.to_error()),
         }
     }
 }
 
-impl File {
-    fn create_file(
-        file_name: &CStr,
-        desired_access: ACCESS_MASK,
-        creation_disposition: CreationDisposition,
-    ) -> io::Result<Self> {
-        let result = unsafe {
+fn to_result(result: BOOL) -> io::Result<()> {
+    let e = get_last_error(result);
+    if e == windows_api::ERROR_SUCCESS || is_pending(e) {
+        return Ok(());
+    }
+    Err(e.to_error())
+}
+
+impl AsyncTrait for Windows {
+    type Handle = HANDLE;
+    type Overlapped = OVERLAPPED;
+    fn overlapped_default() -> Self::Overlapped {
+        OVERLAPPED::default()
+    }
+    fn close(handle: Self::Handle) {
+        unsafe { CloseHandle(handle) };
+    }
+    fn cancel(handle: Self::Handle, overlapped: &mut Self::Overlapped) {
+        if unsafe { CancelIoEx(handle, overlapped) }.to_bool() {
+            return;
+        }
+        let _ = get_overlapped_result(handle, overlapped, true);
+    }
+    fn get_result(handle: Self::Handle, overlapped: &mut Self::Overlapped) -> OperationResult {
+        to_operation_result(get_overlapped_result(handle, overlapped, false))
+    }
+    fn open(path: &CStr, create: bool) -> io::Result<Self::Handle> {
+        let (da, cp) = if create {
+            (GENERIC_WRITE, CREATE_ALWAYS)
+        } else {
+            (GENERIC_READ, OPEN_ALWAYS)
+        };
+        match unsafe {
             CreateFileA(
-                file_name.as_ptr(),
-                desired_access,
+                path.as_ptr(),
+                da,
                 0,
                 null_mut(),
-                creation_disposition,
+                cp,
                 FILE_FLAG_OVERLAPPED,
                 null_mut(),
             )
-        };
-        if result == INVALID_HANDLE_VALUE {
-            Err(io::Error::last_os_error())
-        } else {
-            Ok(Self(result))
+        } {
+            windows_api::INVALID_HANDLE_VALUE => Err(io::Error::last_os_error()),
+            h => Ok(h),
         }
     }
-    pub fn create(file_name: &CStr) -> io::Result<Self> {
-        Self::create_file(file_name, GENERIC_WRITE, CREATE_ALWAYS)
-    }
-    pub fn open(file_name: &CStr) -> io::Result<Self> {
-        Self::create_file(file_name, GENERIC_READ, OPEN_ALWAYS)
-    }
-
-    fn create_operation<'a>(
-        &'a mut self,
-        overlapped: &'a mut Overlapped,
-        result: BOOL,
-    ) -> io::Result<Operation<'a>> {
-        if let OperationResult::Err(e) = to_operation_result(result, 0) {
-            Err(e)
-        } else {
-            Ok(Operation {
-                handle: self,
-                overlapped,
-            })
-        }
-    }
-
-    fn set_offset(overlapped: &mut Overlapped, offset: u64) {
-        let o = unsafe { &mut overlapped.0.OffsetOrPointer.Offset };
-        o.Offset = offset as DWORD;
-        o.OffsetHigh = (offset >> 32) as DWORD;
-    }
-
-    pub fn read<'a>(
-        &'a mut self,
-        overlapped: &'a mut Overlapped,
+    fn init_overlapped(
+        _handle: Self::Handle,
+        overlapped: &mut Self::Overlapped,
         offset: u64,
-        buffer: &'a mut [u8], // it's important that the buffer has the same life time as the overlapped!
-    ) -> io::Result<Operation<'a>> {
-        *overlapped = Default::default();
-        Self::set_offset(overlapped, offset);
-        let result = unsafe {
+        _buffer: &[u8],
+    ) {
+        *overlapped = OVERLAPPED::new(offset);
+    }
+
+    fn read(
+        handle: Self::Handle,
+        overlapped: &mut Self::Overlapped,
+        buffer: &mut [u8],
+    ) -> io::Result<()> {
+        to_result(unsafe {
             ReadFile(
-                self.0,
+                handle,
                 buffer.as_mut_ptr() as LPVOID,
                 buffer.len() as DWORD,
                 null_mut(),
-                &mut overlapped.0,
+                overlapped,
             )
-        };
-        self.create_operation(overlapped, result)
+        })
     }
-
-    pub fn write<'a>(
-        &'a mut self,
-        overlapped: &'a mut Overlapped,
-        offset: u64,
-        buffer: &'a [u8], // it's important that the buffer has the same life time as the overlapped!
-    ) -> io::Result<Operation<'a>> {
-        *overlapped = Default::default();
-        Self::set_offset(overlapped, offset);
-        let result = unsafe {
+    fn write(
+        handle: Self::Handle,
+        overlapped: &mut Self::Overlapped,
+        buffer: &[u8],
+    ) -> io::Result<()> {
+        to_result(unsafe {
             WriteFile(
-                self.0,
+                handle,
                 buffer.as_ptr() as LPCVOID,
                 buffer.len() as DWORD,
                 null_mut(),
-                &mut overlapped.0,
+                overlapped,
             )
-        };
-        self.create_operation(overlapped, result)
+        })
     }
 }
 
-#[derive(Default)]
-pub struct Overlapped(OVERLAPPED);
-
-pub struct Operation<'a> {
-    handle: &'a mut File,
-    overlapped: &'a mut Overlapped,
-}
-
-impl Drop for Operation<'_> {
-    fn drop(&mut self) {
-        unsafe {
-            CancelIoEx(self.handle.0, &mut self.overlapped.0);
-        }
-        let _ = self.get_result(true);
-    }
-}
-
-impl Operation<'_> {
-    fn get_result(&mut self, wait: bool) -> OperationResult {
-        let mut result: DWORD = 0;
-        let r = unsafe {
-            GetOverlappedResult(
-                self.handle.0,
-                &mut self.overlapped.0,
-                &mut result,
-                wait.into(),
-            )
-        };
-        to_operation_result(r, result)
-    }
-}
-
-impl AsyncOperation for Operation<'_> {
-    fn get_result(&mut self) -> OperationResult {
-        self.get_result(false)
-    }
-}
+pub type Os = Windows;

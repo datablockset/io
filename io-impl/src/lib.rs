@@ -1,4 +1,5 @@
 mod async_io;
+mod async_traits;
 mod unix;
 mod windows;
 mod windows_api;
