@@ -21,6 +21,13 @@ fn aio_error(overlapped: &aiocb) -> AioError {
 
 pub struct Unix();
 
+fn to_operation_error(result: c_int) -> io::Result<()> {
+    if result == -1 {
+        return Err(io::Error::last_os_error());
+    }
+    Ok(())
+}
+
 impl AsyncTrait for Unix {
     type Handle = i32;
     type Overlapped = aiocb;
@@ -69,6 +76,13 @@ impl AsyncTrait for Unix {
         overlapped.aio_buf = buffer.as_ptr() as *mut _;
         overlapped.aio_nbytes = buffer.len();
         overlapped.aio_offset = offset as i64;
+    }
+    fn read(
+        _handle: Self::Handle,
+        overlapped: &mut Self::Overlapped,
+        _buffer: &mut [u8],
+    ) -> io::Result<()> {
+        to_operation_error(unsafe { aio_read(overlapped) })
     }
 }
 
@@ -142,7 +156,11 @@ impl File {
         offset: u64,
         buffer: &'a mut [u8],
     ) -> io::Result<Operation<'a>> {
-        self.create_operation(overlapped, offset, buffer, aio_read)
+        Unix::init_overlapped(self.0, &mut overlapped.0, offset, buffer);
+        Unix::read(self.0, &mut overlapped.0, buffer).map(|_| Operation {
+            file: self,
+            overlapped,
+        })
     }
 }
 
