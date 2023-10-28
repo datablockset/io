@@ -39,9 +39,7 @@ pub struct File(HANDLE);
 
 impl Drop for File {
     fn drop(&mut self) {
-        unsafe {
-            CloseHandle(self.0);
-        }
+        Windows::close(self.0);
     }
 }
 
@@ -153,10 +151,7 @@ pub struct Operation<'a> {
 
 impl Drop for Operation<'_> {
     fn drop(&mut self) {
-        unsafe {
-            CancelIoEx(self.handle.0, &mut self.overlapped.0);
-        }
-        let _ = self.get_result(true);
+        Windows::cancel(self.handle.0, &mut self.overlapped.0);
     }
 }
 
