@@ -10,7 +10,7 @@ use crate::{
         self, to_bool, CancelIoEx, CloseHandle, CreateFileA, CreationDisposition, GetLastError,
         GetOverlappedResult, ReadFile, WriteFile, ACCESS_MASK, BOOL, CREATE_ALWAYS, DWORD,
         FILE_FLAG_OVERLAPPED, GENERIC_READ, GENERIC_WRITE, INVALID_HANDLE_VALUE, LPCVOID, LPVOID,
-        OPEN_ALWAYS, OVERLAPPED,
+        OPEN_ALWAYS, OVERLAPPED, TRUE,
     },
 };
 
@@ -22,6 +22,15 @@ impl AsyncTrait for Windows {
     fn close(handle: Self::Handle) {
         unsafe {
             CloseHandle(handle);
+        }
+    }
+    fn cancel(handle: Self::Handle, overlapped: &mut Self::Overlapped) {
+        unsafe {
+            CancelIoEx(handle, overlapped);
+        }
+        unsafe {
+            let mut n = 0;
+            let _ = GetOverlappedResult(handle, overlapped, &mut n, TRUE);
         }
     }
 }

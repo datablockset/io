@@ -31,8 +31,8 @@ type ULONG_PTR = usize;
 #[derive(Copy, Clone)]
 #[repr(transparent)]
 pub struct BOOL(i32);
-const FALSE: BOOL = BOOL(0);
-const TRUE: BOOL = BOOL(1);
+pub const FALSE: BOOL = BOOL(0);
+pub const TRUE: BOOL = BOOL(1);
 pub const fn to_bool(x: BOOL) -> bool {
     x.0 != FALSE.0
 }
