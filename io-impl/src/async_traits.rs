@@ -4,7 +4,8 @@ use io_trait::{AsyncOperation, OperationResult};
 
 pub trait AsyncTrait {
     type Handle: Copy;
-    type Overlapped: Default;
+    type Overlapped;
+    fn overlapped_default() -> Self::Overlapped;
     fn close(handle: Self::Handle);
     fn cancel(handle: Self::Handle, overlapped: &mut Self::Overlapped);
     fn get_result(handle: Self::Handle, overlapped: &mut Self::Overlapped) -> OperationResult;
@@ -43,7 +44,7 @@ pub struct Overlapped<T: AsyncTrait>(T::Overlapped);
 
 impl<T: AsyncTrait> Default for Overlapped<T> {
     fn default() -> Self {
-        Self(Default::default())
+        Self(T::overlapped_default())
     }
 }
 

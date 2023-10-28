@@ -3,7 +3,7 @@
 
 use std::{ffi::CStr, io, mem::zeroed, thread::yield_now};
 
-use io_trait::{AsyncOperation, OperationResult};
+use io_trait::OperationResult;
 use libc::{
     aio_cancel, aio_read, aio_return, aio_write, aiocb, c_int, close, open, AIO_NOTCANCELED,
 };
@@ -31,6 +31,9 @@ fn to_operation_error(result: c_int) -> io::Result<()> {
 impl AsyncTrait for Unix {
     type Handle = i32;
     type Overlapped = aiocb;
+    fn overlapped_default() -> Self::Overlapped {
+        unsafe { zeroed() }
+    }
     fn close(handle: Self::Handle) {
         unsafe {
             close(handle);
@@ -94,74 +97,4 @@ impl AsyncTrait for Unix {
     }
 }
 
-pub struct File(i32);
-
-impl Drop for File {
-    fn drop(&mut self) {
-        Unix::close(self.0);
-    }
-}
-
-pub struct Overlapped(aiocb);
-
-impl Default for Overlapped {
-    fn default() -> Self {
-        Self(unsafe { zeroed() })
-    }
-}
-
-pub struct Operation<'a> {
-    file: &'a mut File,
-    overlapped: &'a mut Overlapped,
-}
-
-impl Drop for Operation<'_> {
-    fn drop(&mut self) {
-        Unix::cancel(self.file.0, &mut self.overlapped.0)
-    }
-}
-
-impl Operation<'_> {
-    fn get_result(&mut self) -> OperationResult {
-        Unix::get_result(self.file.0, &mut self.overlapped.0)
-    }
-}
-
-impl File {
-    pub fn create(path: &CStr) -> io::Result<Self> {
-        Unix::open(path, true).map(Self)
-    }
-    pub fn open(path: &CStr) -> io::Result<Self> {
-        Unix::open(path, false).map(Self)
-    }
-    pub fn write<'a>(
-        &'a mut self,
-        overlapped: &'a mut Overlapped,
-        offset: u64,
-        buffer: &'a [u8],
-    ) -> io::Result<Operation<'a>> {
-        Unix::init_overlapped(self.0, &mut overlapped.0, offset, buffer);
-        Unix::write(self.0, &mut overlapped.0, buffer).map(|_| Operation {
-            file: self,
-            overlapped,
-        })
-    }
-    pub fn read<'a>(
-        &'a mut self,
-        overlapped: &'a mut Overlapped,
-        offset: u64,
-        buffer: &'a mut [u8],
-    ) -> io::Result<Operation<'a>> {
-        Unix::init_overlapped(self.0, &mut overlapped.0, offset, buffer);
-        Unix::read(self.0, &mut overlapped.0, buffer).map(|_| Operation {
-            file: self,
-            overlapped,
-        })
-    }
-}
-
-impl AsyncOperation for Operation<'_> {
-    fn get_result(&mut self) -> OperationResult {
-        self.get_result()
-    }
-}
+pub type Os = Unix;
