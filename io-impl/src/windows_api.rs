@@ -33,8 +33,10 @@ type ULONG_PTR = usize;
 pub struct BOOL(i32);
 pub const FALSE: BOOL = BOOL(0);
 pub const TRUE: BOOL = BOOL(1);
-pub const fn to_bool(x: BOOL) -> bool {
-    x.0 != FALSE.0
+impl BOOL {
+    pub fn to_bool(self) -> bool {
+        self.0 != FALSE.0
+    }
 }
 impl From<bool> for BOOL {
     fn from(x: bool) -> Self {

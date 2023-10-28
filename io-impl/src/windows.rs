@@ -7,7 +7,7 @@ use io_trait::{AsyncOperation, OperationResult};
 use crate::{
     async_traits::AsyncTrait,
     windows_api::{
-        self, to_bool, CancelIoEx, CloseHandle, CreateFileA, CreationDisposition, GetLastError,
+        self, CancelIoEx, CloseHandle, CreateFileA, CreationDisposition, GetLastError,
         GetOverlappedResult, ReadFile, WriteFile, ACCESS_MASK, BOOL, CREATE_ALWAYS, DWORD,
         FILE_FLAG_OVERLAPPED, GENERIC_READ, GENERIC_WRITE, INVALID_HANDLE_VALUE, LPCVOID, LPVOID,
         OPEN_ALWAYS, OVERLAPPED, TRUE,
@@ -25,8 +25,8 @@ impl AsyncTrait for Windows {
         }
     }
     fn cancel(handle: Self::Handle, overlapped: &mut Self::Overlapped) {
-        unsafe {
-            CancelIoEx(handle, overlapped);
+        if unsafe { CancelIoEx(handle, overlapped) }.to_bool() {
+            return;
         }
         unsafe {
             let mut n = 0;
@@ -44,7 +44,7 @@ impl Drop for File {
 }
 
 fn to_operation_result(v: BOOL, result: DWORD) -> OperationResult {
-    if to_bool(v) {
+    if v.to_bool() {
         OperationResult::Ok(result as usize)
     } else {
         match unsafe { GetLastError() } {
