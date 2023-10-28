@@ -86,7 +86,7 @@ impl File {
         offset: u64,
         buffer: &'a mut [u8], // it's important that the buffer has the same life time as the overlapped!
     ) -> io::Result<Operation<'a>> {
-        *overlapped = Overlapped::new(offset);
+        overlapped.0 = OVERLAPPED::new(offset);
         let result = unsafe {
             ReadFile(
                 self.0,
@@ -105,7 +105,7 @@ impl File {
         offset: u64,
         buffer: &'a [u8], // it's important that the buffer has the same life time as the overlapped!
     ) -> io::Result<Operation<'a>> {
-        *overlapped = Overlapped::new(offset);
+        overlapped.0 = OVERLAPPED::new(offset);
         let result = unsafe {
             WriteFile(
                 self.0,

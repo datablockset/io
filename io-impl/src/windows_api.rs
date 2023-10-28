@@ -17,7 +17,7 @@ type LPCSTR = *const i8;
 
 // https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-dtyp/262627d8-3418-4627-9218-4ffe110850b2
 pub type DWORD = u32;
-type LPDWORD = *mut DWORD;
+pub type LPDWORD = *mut DWORD;
 
 // https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-dtyp/c0b7741b-f577-4eed-aff3-2e909df10a4d
 pub type LPVOID = *mut c_void;
@@ -61,12 +61,6 @@ pub union OVERLAPPED_OffsetOrPointer {
     Pointer: PVOID,
 }
 
-impl Default for OVERLAPPED_OffsetOrPointer {
-    fn default() -> Self {
-        unsafe { std::mem::zeroed() }
-    }
-}
-
 #[repr(C)]
 pub struct OVERLAPPED {
     Internal: ULONG_PTR,
@@ -77,18 +71,13 @@ pub struct OVERLAPPED {
 
 impl Default for OVERLAPPED {
     fn default() -> Self {
-        OVERLAPPED {
-            Internal: 0,
-            InternalHigh: 0,
-            OffsetOrPointer: OVERLAPPED_OffsetOrPointer::default(),
-            hEvent: null_mut(),
-        }
+        Self::new(0)
     }
 }
 
-impl Overlapped {
-    fn new(offset: u64) -> Self {
-        Self(OVERLAPPED {
+impl OVERLAPPED {
+    pub fn new(offset: u64) -> Self {
+        Self {
             Internal: 0,
             InternalHigh: 0,
             OffsetOrPointer: OVERLAPPED_OffsetOrPointer {
@@ -98,25 +87,17 @@ impl Overlapped {
                 },
             },
             hEvent: null_mut(),
-        })
+        }
     }
 }
 
-type LPOVERLAPPED = *mut OVERLAPPED;
+pub type LPOVERLAPPED = *mut OVERLAPPED;
 
 // https://learn.microsoft.com/en-us/windows/win32/secauthz/access-mask
 #[repr(transparent)]
 pub struct ACCESS_MASK(DWORD);
 pub const GENERIC_READ: ACCESS_MASK = ACCESS_MASK(0x80000000);
 pub const GENERIC_WRITE: ACCESS_MASK = ACCESS_MASK(0x40000000);
-/*
-impl BitOr for ACCESS_MASK {
-    type Output = Self;
-    fn bitor(self, rhs: Self) -> Self {
-        ACCESS_MASK(self.0 | rhs.0)
-    }
-}
-*/
 
 // https://learn.microsoft.com/en-us/windows/win32/api/wtypesbase/ns-wtypesbase-security_attributes
 #[repr(C)]
@@ -129,23 +110,12 @@ type LPSECURITY_ATTRIBUTES = *mut SECURITY_ATTRIBUTES;
 
 #[repr(transparent)]
 pub struct CreationDisposition(DWORD);
-// pub const CREATE_NEW: CreationDisposition = CreationDisposition(1);
 pub const CREATE_ALWAYS: CreationDisposition = CreationDisposition(2);
-// pub const OPEN_EXISTING: CreationDisposition = CreationDisposition(3);
 pub const OPEN_ALWAYS: CreationDisposition = CreationDisposition(4);
-// pub const TRUNCATE_EXISTING: CreationDisposition = CreationDisposition(5);
 
 #[repr(transparent)]
 pub struct FlagsAndAttributes(DWORD);
 pub const FILE_FLAG_OVERLAPPED: FlagsAndAttributes = FlagsAndAttributes(0x40000000);
-/*
-impl BitOr for FlagsAndAttributes {
-    type Output = Self;
-    fn bitor(self, rhs: Self) -> Self {
-        FlagsAndAttributes(self.0 | rhs.0)
-    }
-}
-*/
 
 // https://learn.microsoft.com/en-us/windows/win32/debug/system-error-codes--500-999-
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
