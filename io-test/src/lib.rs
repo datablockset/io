@@ -375,4 +375,12 @@ mod test {
             .write_recursively("?", "Hello, world!".as_bytes())
             .is_err());
     }
+
+    #[wasm_bindgen_test]
+    #[test]
+    fn test_now() {
+        let io = VirtualIo::new(&[]);
+        assert_eq!(io.now().as_secs(), 0);
+        assert_eq!(io.now().as_secs(), 1);
+    }
 }

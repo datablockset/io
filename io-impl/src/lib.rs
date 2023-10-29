@@ -94,4 +94,10 @@ mod test {
         fs::remove_dir("_test_dir").unwrap();
         let _ = io.stdout();
     }
+
+    #[test]
+    fn test_now() {
+        let io = super::RealIo::default();
+        let _ = io.now();
+    }
 }
