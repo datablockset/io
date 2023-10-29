@@ -35,10 +35,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - uses: cargo-bins/cargo-binstall@v1.4.4
-      with:
-        crate: cargo-tarpaulin
-        version: 0.17.0
-    - run: cargo binstall cargo-tarpaulin
+    - run: cargo binstall tarpaulin
     - run: cargo c
     - uses: actions/upload-artifact@v3
       with:
