@@ -5,8 +5,9 @@ use std::{
     iter::once,
     ops::Add,
     rc::Rc,
+    str::from_utf8,
     time::Duration,
-    vec, str::from_utf8,
+    vec,
 };
 
 use io_trait::Io;
