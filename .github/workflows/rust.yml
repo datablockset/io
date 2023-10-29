@@ -38,7 +38,7 @@ jobs:
       with:
         crate: cargo-tarpaulin
         version: 0.17.0
-    # - run: cargo install cargo-tarpaulin
+    - run: cargo binstall cargo-tarpaulin
     - run: cargo c
     - uses: actions/upload-artifact@v3
       with:
