@@ -8,6 +8,7 @@ use std::{
     env::{args, Args},
     fs::{self, create_dir, File},
     io::{self, Stdout},
+    time::Instant,
 };
 
 use io_trait::Io;
@@ -22,6 +23,7 @@ impl Io for RealIo {
     type File = File;
     type Metadata = fs::Metadata;
     type DirEntry = fs::DirEntry;
+    type Instant = Instant;
 
     fn args(&self) -> Self::Args {
         args()
@@ -49,6 +51,10 @@ impl Io for RealIo {
 
     fn stdout(&self) -> Self::Stdout {
         io::stdout()
+    }
+
+    fn now(&self) -> Instant {
+        Instant::now()
     }
 }
 

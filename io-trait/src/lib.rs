@@ -17,12 +17,14 @@ pub trait Io {
     type Stdout: Write;
     type Metadata: Metadata;
     type DirEntry: DirEntry;
+    type Instant;
     fn args(&self) -> Self::Args;
     fn stdout(&self) -> Self::Stdout;
     fn metadata(&self, path: &str) -> io::Result<Self::Metadata>;
     fn create_dir(&self, path: &str) -> io::Result<()>;
     fn create(&self, path: &str) -> io::Result<Self::File>;
     fn open(&self, path: &str) -> io::Result<Self::File>;
+    fn now(&self) -> Self::Instant;
     fn read(&self, path: &str) -> io::Result<Vec<u8>> {
         let mut file = self.open(path)?;
         let mut result = Vec::default();

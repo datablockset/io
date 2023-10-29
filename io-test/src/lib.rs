@@ -3,7 +3,9 @@ use std::{
     collections::HashMap,
     io::{self, Read, Write},
     iter::once,
+    ops::Add,
     rc::Rc,
+    time::Duration,
     vec,
 };
 
@@ -114,6 +116,7 @@ pub struct VirtualIo {
     pub args: Vec<String>,
     pub fs: RefCell<FileSystem>,
     pub stdout: VecRef,
+    pub duration: RefCell<Duration>,
 }
 
 impl VirtualIo {
@@ -124,6 +127,7 @@ impl VirtualIo {
                 .collect(),
             fs: Default::default(),
             stdout: VecRef::default(),
+            duration: Default::default(),
         }
     }
 }
@@ -182,6 +186,7 @@ impl Io for VirtualIo {
     type Args = vec::IntoIter<String>;
     type Metadata = Metadata;
     type DirEntry = DirEntry;
+    type Instant = Duration;
     fn args(&self) -> Self::Args {
         self.args.clone().into_iter()
     }
@@ -242,6 +247,13 @@ impl Io for VirtualIo {
             })
             .collect();
         Ok(x)
+    }
+
+    fn now(&self) -> Self::Instant {
+        let mut d = self.duration.borrow_mut();
+        let result = *d;
+        *d = d.add(Duration::from_secs(1));
+        result
     }
 }
 
