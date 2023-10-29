@@ -48,5 +48,4 @@ jobs:
       - uses: actions/checkout@v4
       - uses: cargo-bins/cargo-binstall@v1.4.4
       - run: cargo binstall --no-confirm wasm-pack
-      # - run: cargo install wasm-pack
       - run: wasm-pack test --node --release ./io-test
