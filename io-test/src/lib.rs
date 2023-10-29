@@ -6,7 +6,7 @@ use std::{
     ops::Add,
     rc::Rc,
     time::Duration,
-    vec,
+    vec, str::from_utf8,
 };
 
 use io_trait::Io;
@@ -31,15 +31,21 @@ pub struct VecRef(Rc<RefCell<Vec<u8>>>);
 
 impl VecRef {
     pub fn to_stdout(&self) -> String {
-        let mut result = String::default();
+        let mut result = Vec::default();
+        let mut i = 0;
         for &c in self.0.borrow().iter() {
             if c == 8 {
-                result.pop();
+                i -= 1;
             } else {
-                result.push(c as char);
+                if i < result.len() {
+                    result[i] = c;
+                } else {
+                    result.push(c);
+                }
+                i += 1;
             }
         }
-        result
+        from_utf8(&result).unwrap().to_string()
     }
 }
 
@@ -288,10 +294,18 @@ mod test {
     #[wasm_bindgen_test]
     #[test]
     fn test_stdout() {
-        let io = VirtualIo::new(&[]);
-        let mut s = io.stdout();
-        s.write(b"Hello, world!\x08?").unwrap();
-        assert_eq!(s.to_stdout(), "Hello, world?");
+        {
+            let io = VirtualIo::new(&[]);
+            let mut s = io.stdout();
+            s.write(b"Hello, world!\x08?").unwrap();
+            assert_eq!(s.to_stdout(), "Hello, world?");
+        }
+        {
+            let io = VirtualIo::new(&[]);
+            let mut s = io.stdout();
+            s.write(b"Hello, world!\x08\x08?").unwrap();
+            assert_eq!(s.to_stdout(), "Hello, worl?!");
+        }
     }
 
     #[wasm_bindgen_test]
