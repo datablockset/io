@@ -34,7 +34,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - run: curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+    # - run: curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+    - uses: cargo-bins/cargo-binstall@v1.4.4
     - run: cargo binstall --no-confirm cargo-tarpaulin
     - run: cargo c
     - uses: actions/upload-artifact@v3
