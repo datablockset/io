@@ -35,7 +35,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - uses: cargo-bins/cargo-binstall@v1.4.4
-    - run: cargo binstall tarpaulin
+    - run: cargo binstall cargo-tarpaulin
     - run: cargo c
     - uses: actions/upload-artifact@v3
       with:
