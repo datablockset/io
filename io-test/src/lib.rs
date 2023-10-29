@@ -3,7 +3,10 @@ use std::{
     collections::HashMap,
     io::{self, Read, Write},
     iter::once,
+    ops::Add,
     rc::Rc,
+    str::from_utf8,
+    time::Duration,
     vec,
 };
 
@@ -29,15 +32,21 @@ pub struct VecRef(Rc<RefCell<Vec<u8>>>);
 
 impl VecRef {
     pub fn to_stdout(&self) -> String {
-        let mut result = String::default();
+        let mut result = Vec::default();
+        let mut i = 0;
         for &c in self.0.borrow().iter() {
             if c == 8 {
-                result.pop();
+                i -= 1;
             } else {
-                result.push(c as char);
+                if i < result.len() {
+                    result[i] = c;
+                } else {
+                    result.push(c);
+                }
+                i += 1;
             }
         }
-        result
+        from_utf8(&result).unwrap().to_string()
     }
 }
 
@@ -114,6 +123,7 @@ pub struct VirtualIo {
     pub args: Vec<String>,
     pub fs: RefCell<FileSystem>,
     pub stdout: VecRef,
+    pub duration: RefCell<Duration>,
 }
 
 impl VirtualIo {
@@ -124,6 +134,7 @@ impl VirtualIo {
                 .collect(),
             fs: Default::default(),
             stdout: VecRef::default(),
+            duration: Default::default(),
         }
     }
 }
@@ -182,6 +193,7 @@ impl Io for VirtualIo {
     type Args = vec::IntoIter<String>;
     type Metadata = Metadata;
     type DirEntry = DirEntry;
+    type Instant = Duration;
     fn args(&self) -> Self::Args {
         self.args.clone().into_iter()
     }
@@ -243,6 +255,13 @@ impl Io for VirtualIo {
             .collect();
         Ok(x)
     }
+
+    fn now(&self) -> Self::Instant {
+        let mut d = self.duration.borrow_mut();
+        let result = *d;
+        *d = d.add(Duration::from_secs(1));
+        result
+    }
 }
 
 #[cfg(test)]
@@ -276,10 +295,18 @@ mod test {
     #[wasm_bindgen_test]
     #[test]
     fn test_stdout() {
-        let io = VirtualIo::new(&[]);
-        let mut s = io.stdout();
-        s.write(b"Hello, world!\x08?").unwrap();
-        assert_eq!(s.to_stdout(), "Hello, world?");
+        {
+            let io = VirtualIo::new(&[]);
+            let mut s = io.stdout();
+            s.write(b"Hello, world!\x08?").unwrap();
+            assert_eq!(s.to_stdout(), "Hello, world?");
+        }
+        {
+            let io = VirtualIo::new(&[]);
+            let mut s = io.stdout();
+            s.write(b"Hello, world!\x08\x08?").unwrap();
+            assert_eq!(s.to_stdout(), "Hello, worl?!");
+        }
     }
 
     #[wasm_bindgen_test]
@@ -348,5 +375,13 @@ mod test {
         assert!(io
             .write_recursively("?", "Hello, world!".as_bytes())
             .is_err());
+    }
+
+    #[wasm_bindgen_test]
+    #[test]
+    fn test_now() {
+        let io = VirtualIo::new(&[]);
+        assert_eq!(io.now().as_secs(), 0);
+        assert_eq!(io.now().as_secs(), 1);
     }
 }
