@@ -168,7 +168,7 @@ impl Seek for MemFile {
     fn seek(&mut self, pos: io::SeekFrom) -> io::Result<u64> {
         self.pos = match pos {
             io::SeekFrom::Start(x) => x as usize,
-            io::SeekFrom::End(x) => (self.vec_ref.len() as i64 - x) as usize,
+            io::SeekFrom::End(x) => (self.vec_ref.len() as i64 + x) as usize,
             io::SeekFrom::Current(x) => (self.pos as i64 + x) as usize,
         };
         Ok(self.pos as u64)
@@ -197,10 +197,11 @@ impl Write for MemFile {
             }
             v[pos..end].copy_from_slice(buf);
         }
+        self.pos = end;
         Ok(buf_len)
     }
     fn flush(&mut self) -> io::Result<()> {
-        Ok(())
+        self.vec_ref.flush()
     }
 }
 
@@ -359,13 +360,14 @@ mod test {
         {
             let mut f = io.create("test.txt").unwrap();
             f.write("Hello, world!".as_bytes()).unwrap();
+            f.write("?".as_bytes()).unwrap();
             f.flush().unwrap();
             let m = f.metadata().unwrap();
-            assert_eq!(m.len(), 13);
+            assert_eq!(m.len(), 14);
             assert!(!m.is_dir());
         }
         let result = io.read("test.txt").unwrap();
-        assert_eq!(result, "Hello, world!".as_bytes());
+        assert_eq!(result, "Hello, world!?".as_bytes());
     }
 
     #[wasm_bindgen_test]
@@ -384,6 +386,42 @@ mod test {
         }
         let result = io.read("test.txt").unwrap();
         assert_eq!(result, "Hello, there!".as_bytes());
+    }
+
+    #[wasm_bindgen_test]
+    #[test]
+    fn test_write_seek_current() {
+        let io = VirtualIo::new(&[]);
+        {
+            let mut f = io.create("test.txt").unwrap();
+            f.write("Hello, world!".as_bytes()).unwrap();
+            f.seek(SeekFrom::Current(2)).unwrap();
+            f.write("there".as_bytes()).unwrap();
+            f.flush().unwrap();
+            let m = f.metadata().unwrap();
+            assert_eq!(m.len(), 20);
+            assert!(!m.is_dir());
+        }
+        let result = io.read("test.txt").unwrap();
+        assert_eq!(result, "Hello, world!\0\0there".as_bytes());
+    }
+
+    #[wasm_bindgen_test]
+    #[test]
+    fn test_write_seek_end() {
+        let io = VirtualIo::new(&[]);
+        {
+            let mut f = io.create("test.txt").unwrap();
+            f.write("Hello, world!".as_bytes()).unwrap();
+            f.seek(SeekFrom::End(-2)).unwrap();
+            f.write("there".as_bytes()).unwrap();
+            f.flush().unwrap();
+            let m = f.metadata().unwrap();
+            assert_eq!(m.len(), 16);
+            assert!(!m.is_dir());
+        }
+        let result = io.read("test.txt").unwrap();
+        assert_eq!(result, "Hello, worlthere".as_bytes());
     }
 
     #[wasm_bindgen_test]
