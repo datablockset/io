@@ -1,6 +1,6 @@
 [package]
 name = "io-test"
-version = "0.4.0"
+version = "0.5.0"
 edition = "2021"
 description = "I/O implementations for testing"
 authors.workspace = true
@@ -10,7 +10,7 @@ repository.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-io-trait = { path = "../io-trait", version = "0.4.0" }
+io-trait = { path = "../io-trait", version = "0.5.0" }
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.37"
