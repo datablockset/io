@@ -1,12 +1,12 @@
 use core::fmt;
 use std::{
     fs,
-    io::{self, Read, Write},
+    io::{self, Read, Seek, Write},
 };
 
 use crate::Metadata;
 
-pub trait File: Read + Write + fmt::Debug {
+pub trait File: Read + Write + Seek + fmt::Debug {
     type Metadata: Metadata;
     fn metadata(&self) -> io::Result<Self::Metadata>;
 }
