@@ -10,7 +10,7 @@ use std::{
     vec,
 };
 
-use io_trait::Io;
+use io_trait::{File, Io};
 
 #[derive(Debug, Clone)]
 pub struct Metadata {
@@ -48,6 +48,12 @@ impl VecRef {
         }
         from_utf8(&result).unwrap().to_string()
     }
+    fn metadata(&self) -> Metadata {
+        Metadata {
+            len: self.0.borrow().len() as u64,
+            is_dir: false,
+        }
+    }
 }
 
 impl Write for VecRef {
@@ -74,10 +80,7 @@ impl Entity {
                 len: 0,
                 is_dir: true,
             },
-            Entity::File(x) => Metadata {
-                len: x.0.borrow().len() as u64,
-                is_dir: false,
-            },
+            Entity::File(x) => x.metadata(),
         }
     }
 }
@@ -148,6 +151,13 @@ pub struct MemFile {
 impl MemFile {
     fn new(vec_ref: VecRef) -> Self {
         Self { vec_ref, pos: 0 }
+    }
+}
+
+impl File for MemFile {
+    type Metadata = Metadata;
+    fn metadata(&self) -> io::Result<Self::Metadata> {
+        Ok(self.vec_ref.metadata())
     }
 }
 
@@ -268,7 +278,7 @@ impl Io for VirtualIo {
 mod test {
     use std::io::Write;
 
-    use io_trait::{DirEntry, Io, Metadata};
+    use io_trait::{DirEntry, File, Io, Metadata};
     use wasm_bindgen_test::wasm_bindgen_test;
 
     use crate::VirtualIo;
@@ -326,6 +336,9 @@ mod test {
             let mut f = io.create("test.txt").unwrap();
             f.write("Hello, world!".as_bytes()).unwrap();
             f.flush().unwrap();
+            let m = f.metadata().unwrap();
+            assert_eq!(m.len(), 13);
+            assert!(!m.is_dir());
         }
         let result = io.read("test.txt").unwrap();
         assert_eq!(result, "Hello, world!".as_bytes());

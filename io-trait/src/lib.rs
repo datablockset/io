@@ -1,19 +1,18 @@
 mod async_io;
 mod dir_entry;
+mod file;
 mod metadata;
 
 pub use async_io::*;
 pub use dir_entry::DirEntry;
+pub use file::File;
 pub use metadata::Metadata;
 
-use std::{
-    fmt,
-    io::{self, Read, Write},
-};
+use std::io::{self, Read, Write};
 
 pub trait Io {
     type Args: Iterator<Item = String>;
-    type File: Read + Write + fmt::Debug;
+    type File: File;
     type Stdout: Write;
     type Metadata: Metadata;
     type DirEntry: DirEntry;

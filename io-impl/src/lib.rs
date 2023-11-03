@@ -65,7 +65,7 @@ mod test {
         io::{Read, Write},
     };
 
-    use io_trait::Io;
+    use io_trait::{File, Io};
 
     #[test]
     fn test_arg() {
@@ -85,6 +85,9 @@ mod test {
             let mut file = io.open("_test_file").unwrap();
             let mut buf = Vec::default();
             file.read_to_end(&mut buf).unwrap();
+            let x = File::metadata(&file).unwrap();
+            assert_eq!(x.len(), 4);
+            assert!(x.is_file());
             assert_eq!(buf, b"test");
         }
         io.metadata("_test_file").unwrap();
