@@ -1,7 +1,7 @@
 use std::{
     cell::RefCell,
     collections::HashMap,
-    io::{self, Read, Write},
+    io::{self, Read, Seek, Write},
     iter::once,
     ops::Add,
     rc::Rc,
@@ -48,9 +48,12 @@ impl VecRef {
         }
         from_utf8(&result).unwrap().to_string()
     }
+    fn len(&self) -> u64 {
+        self.0.borrow().len() as u64
+    }
     fn metadata(&self) -> Metadata {
         Metadata {
-            len: self.0.borrow().len() as u64,
+            len: self.len(),
             is_dir: false,
         }
     }
@@ -136,7 +139,7 @@ impl VirtualIo {
                 .chain(args.iter().map(|v| v.to_string()))
                 .collect(),
             fs: Default::default(),
-            stdout: VecRef::default(),
+            stdout: Default::default(),
             duration: Default::default(),
         }
     }
@@ -161,6 +164,17 @@ impl File for MemFile {
     }
 }
 
+impl Seek for MemFile {
+    fn seek(&mut self, pos: io::SeekFrom) -> io::Result<u64> {
+        self.pos = match pos {
+            io::SeekFrom::Start(x) => x as usize,
+            io::SeekFrom::End(x) => (self.vec_ref.len() as i64 - x) as usize,
+            io::SeekFrom::Current(x) => (self.pos as i64 + x) as usize,
+        };
+        Ok(self.pos as u64)
+    }
+}
+
 impl Read for MemFile {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         let source = &self.vec_ref.0.borrow()[self.pos..];
@@ -173,10 +187,20 @@ impl Read for MemFile {
 
 impl Write for MemFile {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        self.vec_ref.write(buf)
+        let pos = self.pos;
+        let buf_len = buf.len();
+        let end = pos + buf_len;
+        {
+            let mut v = self.vec_ref.0.borrow_mut();
+            if end > v.len() {
+                v.resize(end, 0);
+            }
+            v[pos..end].copy_from_slice(buf);
+        }
+        Ok(buf_len)
     }
     fn flush(&mut self) -> io::Result<()> {
-        self.vec_ref.flush()
+        Ok(())
     }
 }
 
@@ -276,7 +300,7 @@ impl Io for VirtualIo {
 
 #[cfg(test)]
 mod test {
-    use std::io::Write;
+    use std::io::{Seek, SeekFrom, Write};
 
     use io_trait::{DirEntry, File, Io, Metadata};
     use wasm_bindgen_test::wasm_bindgen_test;
@@ -342,6 +366,24 @@ mod test {
         }
         let result = io.read("test.txt").unwrap();
         assert_eq!(result, "Hello, world!".as_bytes());
+    }
+
+    #[wasm_bindgen_test]
+    #[test]
+    fn test_write_seek() {
+        let io = VirtualIo::new(&[]);
+        {
+            let mut f = io.create("test.txt").unwrap();
+            f.write("Hello, world!".as_bytes()).unwrap();
+            f.seek(SeekFrom::Start(7)).unwrap();
+            f.write("there!".as_bytes()).unwrap();
+            f.flush().unwrap();
+            let m = f.metadata().unwrap();
+            assert_eq!(m.len(), 13);
+            assert!(!m.is_dir());
+        }
+        let result = io.read("test.txt").unwrap();
+        assert_eq!(result, "Hello, there!".as_bytes());
     }
 
     #[wasm_bindgen_test]
