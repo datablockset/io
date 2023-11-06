@@ -123,6 +123,12 @@ impl io_trait::DirEntry for DirEntry {
     fn metadata(&self) -> io::Result<Self::Metadata> {
         Ok(self.metadata.clone())
     }
+    fn file_name(&self) -> String {
+        self.path
+            .rsplit_once('/')
+            .map(|(_, b)| b.to_string())
+            .unwrap_or_else(|| self.path.clone())
+    }
 }
 
 pub struct VirtualIo {
@@ -459,6 +465,13 @@ mod test {
             .map(|v| v.path().to_owned())
             .collect::<Vec<_>>();
         assert_eq!(x, ["a/b"].to_vec());
+        let x = &io
+            .read_dir_type("a/b", false)
+            .unwrap()
+            .first()
+            .unwrap()
+            .file_name();
+        assert_eq!(x, "test.txt");
     }
 
     #[wasm_bindgen_test]

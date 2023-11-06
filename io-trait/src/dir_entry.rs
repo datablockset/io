@@ -6,6 +6,7 @@ pub trait DirEntry {
     type Metadata: Metadata;
     fn path(&self) -> String;
     fn metadata(&self) -> io::Result<Self::Metadata>;
+    fn file_name(&self) -> String;
 }
 
 impl DirEntry for fs::DirEntry {
@@ -15,6 +16,9 @@ impl DirEntry for fs::DirEntry {
     }
     fn metadata(&self) -> io::Result<Self::Metadata> {
         self.metadata()
+    }
+    fn file_name(&self) -> String {
+        self.file_name().into_string().unwrap()
     }
 }
 
@@ -30,6 +34,7 @@ mod test {
         for i in x {
             let i = i.unwrap();
             assert_eq!(DirEntry::path(&i), i.path().to_str().unwrap());
+            assert_eq!(DirEntry::file_name(&i), i.file_name().to_str().unwrap());
             assert_eq!(
                 DirEntry::metadata(&i).unwrap().is_dir(),
                 i.metadata().unwrap().is_dir()
