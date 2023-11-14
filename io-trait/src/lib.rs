@@ -8,7 +8,7 @@ pub use dir_entry::DirEntry;
 pub use file::File;
 pub use metadata::Metadata;
 
-use std::io::{self, Read, Write};
+use std::{io::{self, Read, Write}, ops::Sub, time::Duration};
 
 pub trait Io {
     type Args: Iterator<Item = String>;
@@ -16,7 +16,7 @@ pub trait Io {
     type Stdout: Write;
     type Metadata: Metadata;
     type DirEntry: DirEntry;
-    type Instant;
+    type Instant: Sub<Output = Duration>;
     fn args(&self) -> Self::Args;
     fn stdout(&self) -> Self::Stdout;
     fn metadata(&self, path: &str) -> io::Result<Self::Metadata>;
