@@ -147,7 +147,7 @@ mod test {
             {
                 let mut file = aio.open(&x).unwrap();
                 let mut buffer = [0u8; 1024];
-                let mut len = 0;
+                let len;
                 {
                     let mut operation = file.read(0, &mut buffer).unwrap();
                     loop {
@@ -200,7 +200,7 @@ mod test {
             let mut v = Vec::default();
             loop {
                 let mut buffer = [0u8; 1024];
-                let mut len: usize = 0;
+                let len;
                 {
                     let mut operation = file.read(v.len() as u64, &mut buffer).unwrap();
                     loop {

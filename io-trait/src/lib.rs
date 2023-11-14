@@ -8,7 +8,11 @@ pub use dir_entry::DirEntry;
 pub use file::File;
 pub use metadata::Metadata;
 
-use std::{io::{self, Read, Write}, ops::Sub, time::Duration};
+use std::{
+    io::{self, Read, Write},
+    ops::Sub,
+    time::Duration,
+};
 
 pub trait Io {
     type Args: Iterator<Item = String>;
