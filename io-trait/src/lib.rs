@@ -20,7 +20,7 @@ pub trait Io {
     type Stdout: Write;
     type Metadata: Metadata;
     type DirEntry: DirEntry;
-    type Instant: Sub<Output = Duration>;
+    type Instant: Sub<Output = Duration> + Clone;
     fn args(&self) -> Self::Args;
     fn stdout(&self) -> Self::Stdout;
     fn metadata(&self, path: &str) -> io::Result<Self::Metadata>;
