@@ -294,7 +294,7 @@ impl Io for VirtualIo {
     fn now(&self) -> Self::Instant {
         let mut d = self.duration.borrow_mut();
         let result = *d;
-        *d = d.add(Duration::from_secs(1));
+        *d = d.add(Duration::from_millis(1));
         result
     }
 }
@@ -474,7 +474,7 @@ mod test {
     #[test]
     fn test_now() {
         let io = VirtualIo::new(&[]);
-        assert_eq!(io.now().as_secs(), 0);
-        assert_eq!(io.now().as_secs(), 1);
+        assert_eq!(io.now().as_millis(), 0);
+        assert_eq!(io.now().as_millis(), 1);
     }
 }
