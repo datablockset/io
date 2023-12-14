@@ -1,3 +1,4 @@
+#[cfg(any(target_family = "windows", target_family = "unix"))]
 mod async_io;
 mod async_traits;
 mod unix;
