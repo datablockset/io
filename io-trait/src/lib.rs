@@ -14,7 +14,12 @@ use std::{
     time::Duration,
 };
 
-pub trait Io {
+fn write_rec(io: &impl Io, p: &str, path: &str, data: &[u8]) -> io::Result<()> {
+    io.create_dir_recursively(p)?;
+    io.write(path, data)
+}
+
+pub trait Io: Sized {
     type Args: Iterator<Item = String>;
     type File: File;
     type Stdout: Write;
@@ -29,22 +34,18 @@ pub trait Io {
     fn open(&self, path: &str) -> io::Result<Self::File>;
     fn now(&self) -> Self::Instant;
     fn read(&self, path: &str) -> io::Result<Vec<u8>> {
-        let mut file = self.open(path)?;
         let mut result = Vec::default();
-        file.read_to_end(&mut result)?;
+        self.open(path)?.read_to_end(&mut result)?;
         Ok(result)
     }
     fn read_dir(&self, path: &str) -> io::Result<Vec<Self::DirEntry>>;
     fn read_to_string(&self, path: &str) -> io::Result<String> {
-        let mut file = self.open(path)?;
         let mut result = String::default();
-        file.read_to_string(&mut result)?;
+        self.open(path)?.read_to_string(&mut result)?;
         Ok(result)
     }
     fn write(&self, path: &str, data: &[u8]) -> io::Result<()> {
-        let mut file = self.create(path)?;
-        file.write_all(data)?;
-        Ok(())
+        self.create(path)?.write_all(data)
     }
     fn create_dir_recursively(&self, path: &str) -> io::Result<()> {
         let mut x = String::default();
@@ -59,14 +60,14 @@ pub trait Io {
     fn write_recursively(&self, path: &str, data: &[u8]) -> io::Result<()> {
         let e = self.write(path, data);
         if let Err(er) = e {
-            return if let Some((p, _)) = path.rsplit_once('/') {
-                self.create_dir_recursively(p)?;
-                self.write(path, data)
+            if let Some((p, _)) = path.rsplit_once('/') {
+                write_rec(self, p, path, data)
             } else {
                 Err(er)
-            };
+            }
+        } else {
+            Ok(())
         }
-        Ok(())
     }
     fn read_dir_type(&self, path: &str, is_dir: bool) -> io::Result<Vec<Self::DirEntry>> {
         let mut result = Vec::default();
