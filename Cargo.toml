@@ -8,4 +8,5 @@ license = "MIT"
 repository = "https://github.com/datablockset/io"
 
 [workspace.dependencies]
-libc = "0.2.151"
+libc = "0.2.153"
+wasm-bindgen-test = "0.3.42"
