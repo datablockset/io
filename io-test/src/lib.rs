@@ -1,6 +1,6 @@
 use std::{
     cell::RefCell,
-    collections::HashMap,
+    collections::BTreeMap,
     io::{self, Read, Seek, Write},
     iter::once,
     ops::Add,
@@ -90,7 +90,7 @@ impl Entity {
 
 #[derive(Debug, Default)]
 pub struct FileSystem {
-    entity_map: HashMap<String, Entity>,
+    entity_map: BTreeMap<String, Entity>,
 }
 
 impl FileSystem {
