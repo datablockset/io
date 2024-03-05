@@ -1,6 +1,6 @@
 [package]
 name = "io-impl"
-version = "0.8.1"
+version = "0.8.2"
 edition = "2021"
 description = "I/O implementations"
 authors.workspace = true
@@ -11,4 +11,4 @@ repository.workspace = true
 
 [dependencies]
 io-trait = { path = "../io-trait", version = "0.8.0" }
-libc = { workspace = true }
+libc.workspace = true
