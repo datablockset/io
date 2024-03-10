@@ -108,4 +108,10 @@ mod test {
         let io = super::RealIo::default();
         let _ = io.now();
     }
+
+    #[test]
+    fn test_current_dir() {
+        let io = super::RealIo::default();
+        let _ = io.current_dir();
+    }
 }
