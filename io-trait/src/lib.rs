@@ -78,4 +78,5 @@ pub trait Io: Sized {
         }
         Ok(result)
     }
+    fn current_dir(&self) -> io::Result<String>;
 }

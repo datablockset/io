@@ -297,6 +297,10 @@ impl Io for VirtualIo {
         *d = d.add(Duration::from_millis(1));
         result
     }
+
+    fn current_dir(&self) -> io::Result<String> {
+        Ok(String::default())
+    }
 }
 
 #[cfg(test)]
