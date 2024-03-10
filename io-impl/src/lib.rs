@@ -6,7 +6,7 @@ mod windows;
 mod windows_api;
 
 use std::{
-    env::{args, Args},
+    env::{args, current_dir, Args},
     fs::{self, create_dir, File},
     io::{self, Stdout},
     time::Instant,
@@ -57,6 +57,10 @@ impl Io for RealIo {
     fn now(&self) -> Instant {
         Instant::now()
     }
+
+    fn current_dir(&self) -> io::Result<String> {
+        current_dir().map(|x| x.to_string_lossy().to_string())
+    }
 }
 
 #[cfg(test)]
@@ -103,5 +107,11 @@ mod test {
     fn test_now() {
         let io = super::RealIo::default();
         let _ = io.now();
+    }
+
+    #[test]
+    fn test_current_dir() {
+        let io = super::RealIo::default();
+        let _ = io.current_dir();
     }
 }
