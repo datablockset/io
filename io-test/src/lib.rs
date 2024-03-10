@@ -320,6 +320,7 @@ mod test {
         let result = io.read_to_string("test.txt").unwrap();
         assert_eq!(result, "Hello, world!");
         assert_eq!(io.metadata("test.txt").unwrap().len(), 13);
+        assert_eq!(io.current_dir().unwrap(), "");
     }
 
     #[wasm_bindgen_test]
