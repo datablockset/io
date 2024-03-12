@@ -494,6 +494,10 @@ mod test {
         assert_eq!(io.now().as_millis(), 1);
     }
 
+    fn check_len(m: &super::Metadata, f: fn(m: &super::Metadata) -> u64, len: u64) {
+        assert_eq!(m.len(), len);
+    }
+
     #[wasm_bindgen_test]
     #[test]
     fn test_metadata() {
@@ -502,7 +506,8 @@ mod test {
         io.create_dir("a").unwrap();
         {
             let m = io.metadata("test.txt").unwrap();
-            assert_eq!(m.len(), 13);
+            // assert_eq!(m.len(), 13);
+            check_len(&m, super::Metadata::len, 13);
             assert!(!m.is_dir());
         }
         {
