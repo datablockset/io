@@ -234,10 +234,21 @@ impl Io for VirtualIo {
     }
     fn metadata(&self, path: &str) -> io::Result<Metadata> {
         let fs = self.fs.borrow();
-        fs.entity_map
+        let dir_end = path.ends_with('/');
+        let path = if dir_end {
+            &path[..path.len() - 1]
+        } else {
+            path
+        };
+        let result = fs
+            .entity_map
             .get(path)
             .map(Entity::metadata)
-            .ok_or_else(not_found)
+            .ok_or_else(not_found)?;
+        if !result.is_dir && dir_end {
+            return Err(not_found());
+        }
+        Ok(result)
     }
     fn create(&self, path: &str) -> io::Result<Self::File> {
         let mut fs = self.fs.borrow_mut();
@@ -481,5 +492,32 @@ mod test {
         let io = VirtualIo::new(&[]);
         assert_eq!(io.now().as_millis(), 0);
         assert_eq!(io.now().as_millis(), 1);
+    }
+
+    #[wasm_bindgen_test]
+    #[test]
+    fn test_metadata() {
+        let io = VirtualIo::new(&[]);
+        io.write("test.txt", "Hello, world!".as_bytes()).unwrap();
+        io.create_dir("a").unwrap();
+        {
+            let m = io.metadata("test.txt").unwrap();
+            assert_eq!(m.len(), 13);
+            assert!(!m.is_dir());
+        }
+        {
+            io.metadata("test.txt/").unwrap_err();
+        }
+        {
+            io.metadata("b").unwrap_err();
+        }
+        {
+            let m = io.metadata("a").unwrap();
+            assert!(m.is_dir());
+        }
+        {
+            let m = io.metadata("a/").unwrap();
+            assert!(m.is_dir());
+        }
     }
 }
