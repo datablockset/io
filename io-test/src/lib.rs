@@ -211,7 +211,7 @@ fn not_found() -> io::Error {
 
 fn check_path(a: &str) -> io::Result<()> {
     if a.chars()
-        .all(|c| c.is_ascii_alphanumeric() || c == '/' || c == '_' || c == '.')
+        .all(|c| c.is_ascii_alphanumeric() || "/_.-".contains(c))
     {
         Ok(())
     } else {
