@@ -539,4 +539,12 @@ mod test {
             assert!(m.is_dir());
         }
     }
+
+    #[wasm_bindgen_test]
+    #[test]
+    fn test_set_current_dir() {
+        let io = VirtualIo::new(&[]);
+        assert!(io.set_current_dir("").is_ok());
+        assert!(io.set_current_dir("a").is_err());
+    }
 }

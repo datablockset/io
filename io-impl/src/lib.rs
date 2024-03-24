@@ -118,4 +118,10 @@ mod test {
         let io = super::RealIo::default();
         let _ = io.current_dir();
     }
+
+    #[test]
+    fn test_set_current_dir() {
+        let io = super::RealIo::default();
+        let _ = io.set_current_dir(".");
+    }
 }
