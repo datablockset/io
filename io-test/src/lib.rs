@@ -326,7 +326,7 @@ impl Io for VirtualIo {
 
 #[cfg(test)]
 mod test {
-    use std::io::{Seek, SeekFrom, Write};
+    use std::io::{self, Seek, SeekFrom, Write};
 
     use io_trait::{DirEntry, File, Io, Metadata};
     use wasm_bindgen_test::wasm_bindgen_test;
@@ -386,17 +386,20 @@ mod test {
     #[wasm_bindgen_test]
     #[test]
     fn test_write_file() {
-        let io = VirtualIo::new(&[]);
+        fn flush<W: Write>(w: &mut W, f: fn(&mut W) -> io::Result<()>) {
+            f(w).unwrap();
+        }
+        let i = VirtualIo::new(&[]);
         {
-            let mut f = io.create("test.txt").unwrap();
+            let mut f = i.create("test.txt").unwrap();
             f.write("Hello, world!".as_bytes()).unwrap();
             f.write("?".as_bytes()).unwrap();
-            f.flush().unwrap();
+            flush(&mut f, Write::flush);
             let m = f.metadata().unwrap();
             assert_eq!(m.len(), 14);
             assert!(!m.is_dir());
         }
-        let result = io.read("test.txt").unwrap();
+        let result = i.read("test.txt").unwrap();
         assert_eq!(result, "Hello, world!?".as_bytes());
     }
 
