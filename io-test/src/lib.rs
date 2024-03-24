@@ -312,11 +312,21 @@ impl Io for VirtualIo {
     fn current_dir(&self) -> io::Result<String> {
         Ok(String::default())
     }
+    fn set_current_dir(&self, path: &str) -> io::Result<()> {
+        if path.is_empty() {
+            Ok(())
+        } else {
+            Err(io::Error::new(
+                io::ErrorKind::NotFound,
+                "directory not found",
+            ))
+        }
+    }
 }
 
 #[cfg(test)]
 mod test {
-    use std::io::{Seek, SeekFrom, Write};
+    use std::io::{self, Seek, SeekFrom, Write};
 
     use io_trait::{DirEntry, File, Io, Metadata};
     use wasm_bindgen_test::wasm_bindgen_test;
@@ -329,13 +339,21 @@ mod test {
         fn check_len(m: &super::Metadata, f: fn(m: &super::Metadata) -> u64, len: u64) {
             assert_eq!(f(m), len);
         }
+        fn check_current_dir(
+            io: &VirtualIo,
+            path: &str,
+            f: fn(x: &VirtualIo) -> io::Result<String>,
+        ) {
+            assert_eq!(f(io).unwrap(), path);
+        }
         let io = VirtualIo::new(&[]);
         io.write("test.txt", "Hello, world!".as_bytes()).unwrap();
         let result = io.read_to_string("test.txt").unwrap();
         assert_eq!(result, "Hello, world!");
         check_len(&io.metadata("test.txt").unwrap(), Metadata::len, 13);
         // assert_eq!(io.metadata("test.txt").unwrap().len(), 13);
-        assert_eq!(io.current_dir().unwrap(), "");
+        check_current_dir(&io, "", VirtualIo::current_dir);
+        // assert_eq!(io.current_dir().unwrap(), "");
     }
 
     #[wasm_bindgen_test]
@@ -376,17 +394,20 @@ mod test {
     #[wasm_bindgen_test]
     #[test]
     fn test_write_file() {
-        let io = VirtualIo::new(&[]);
+        fn flush<W: Write>(w: &mut W, f: fn(&mut W) -> io::Result<()>) {
+            f(w).unwrap();
+        }
+        let i = VirtualIo::new(&[]);
         {
-            let mut f = io.create("test.txt").unwrap();
+            let mut f = i.create("test.txt").unwrap();
             f.write("Hello, world!".as_bytes()).unwrap();
             f.write("?".as_bytes()).unwrap();
-            f.flush().unwrap();
+            flush(&mut f, Write::flush);
             let m = f.metadata().unwrap();
             assert_eq!(m.len(), 14);
             assert!(!m.is_dir());
         }
-        let result = io.read("test.txt").unwrap();
+        let result = i.read("test.txt").unwrap();
         assert_eq!(result, "Hello, world!?".as_bytes());
     }
 
@@ -528,5 +549,13 @@ mod test {
             let m = io.metadata("a/").unwrap();
             assert!(m.is_dir());
         }
+    }
+
+    #[wasm_bindgen_test]
+    #[test]
+    fn test_set_current_dir() {
+        let io = VirtualIo::new(&[]);
+        assert!(io.set_current_dir("").is_ok());
+        assert!(io.set_current_dir("a").is_err());
     }
 }
