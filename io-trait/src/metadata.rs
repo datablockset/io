@@ -23,8 +23,11 @@ mod test {
 
     #[test]
     fn test() {
+        fn check_len(m: &impl Metadata, len: u64) {
+            assert_ne!(m.len(), len);
+        }
         let m = fs::metadata("Cargo.toml").unwrap();
-        assert_ne!(Metadata::len(&m), 0);
+        check_len(&m, 0);
         assert_eq!(Metadata::is_dir(&m), false);
     }
 }
