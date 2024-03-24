@@ -211,7 +211,7 @@ fn not_found() -> io::Error {
 
 fn check_path(a: &str) -> io::Result<()> {
     if a.chars()
-        .all(|c| c.is_ascii_alphanumeric() || c == '/' || c == '_' || c == '.')
+        .all(|c| c.is_ascii_alphanumeric() || "/_.-".contains(c))
     {
         Ok(())
     } else {
@@ -326,11 +326,15 @@ mod test {
     #[wasm_bindgen_test]
     #[test]
     fn test() {
+        fn check_len(m: &super::Metadata, f: fn(m: &super::Metadata) -> u64, len: u64) {
+            assert_eq!(f(m), len);
+        }
         let io = VirtualIo::new(&[]);
         io.write("test.txt", "Hello, world!".as_bytes()).unwrap();
         let result = io.read_to_string("test.txt").unwrap();
         assert_eq!(result, "Hello, world!");
-        assert_eq!(io.metadata("test.txt").unwrap().len(), 13);
+        check_len(&io.metadata("test.txt").unwrap(), Metadata::len, 13);
+        // assert_eq!(io.metadata("test.txt").unwrap().len(), 13);
         assert_eq!(io.current_dir().unwrap(), "");
     }
 
