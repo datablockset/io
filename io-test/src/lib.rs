@@ -339,7 +339,11 @@ mod test {
         fn check_len(m: &super::Metadata, f: fn(m: &super::Metadata) -> u64, len: u64) {
             assert_eq!(f(m), len);
         }
-        fn check_current_dir(io: &VirtualIo, path: &str, f: fn(x: &VirtualIo) -> io::Result<String>) {
+        fn check_current_dir(
+            io: &VirtualIo,
+            path: &str,
+            f: fn(x: &VirtualIo) -> io::Result<String>,
+        ) {
             assert_eq!(f(io).unwrap(), path);
         }
         let io = VirtualIo::new(&[]);
