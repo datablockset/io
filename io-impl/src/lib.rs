@@ -6,7 +6,7 @@ mod windows;
 mod windows_api;
 
 use std::{
-    env::{args, current_dir, Args},
+    env::{args, current_dir, set_current_dir, Args},
     fs::{self, create_dir, File},
     io::{self, Stdout},
     time::Instant,
@@ -60,6 +60,10 @@ impl Io for RealIo {
 
     fn current_dir(&self) -> io::Result<String> {
         current_dir().map(|x| x.to_string_lossy().to_string())
+    }
+
+    fn set_current_dir(&self, path: &str) -> io::Result<()> {
+        set_current_dir(path)
     }
 }
 

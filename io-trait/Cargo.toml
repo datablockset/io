@@ -1,6 +1,6 @@
 [package]
 name = "io-trait"
-version = "0.10.0"
+version.workspace = true
 edition = "2021"
 description = "I/O traits"
 authors.workspace = true

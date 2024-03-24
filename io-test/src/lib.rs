@@ -312,6 +312,16 @@ impl Io for VirtualIo {
     fn current_dir(&self) -> io::Result<String> {
         Ok(String::default())
     }
+    fn set_current_dir(&self, path: &str) -> io::Result<()> {
+        if path.is_empty() {
+            Ok(())
+        } else {
+            Err(io::Error::new(
+                io::ErrorKind::NotFound,
+                "directory not found",
+            ))
+        }
+    }
 }
 
 #[cfg(test)]
