@@ -339,13 +339,17 @@ mod test {
         fn check_len(m: &super::Metadata, f: fn(m: &super::Metadata) -> u64, len: u64) {
             assert_eq!(f(m), len);
         }
+        fn check_current_dir(io: &VirtualIo, path: &str, f: fn(x: &VirtualIo) -> io::Result<String>) {
+            assert_eq!(f(io).unwrap(), path);
+        }
         let io = VirtualIo::new(&[]);
         io.write("test.txt", "Hello, world!".as_bytes()).unwrap();
         let result = io.read_to_string("test.txt").unwrap();
         assert_eq!(result, "Hello, world!");
         check_len(&io.metadata("test.txt").unwrap(), Metadata::len, 13);
         // assert_eq!(io.metadata("test.txt").unwrap().len(), 13);
-        assert_eq!(io.current_dir().unwrap(), "");
+        check_current_dir(&io, "", VirtualIo::current_dir);
+        // assert_eq!(io.current_dir().unwrap(), "");
     }
 
     #[wasm_bindgen_test]
